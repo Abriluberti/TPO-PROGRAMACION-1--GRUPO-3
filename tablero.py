@@ -2,10 +2,10 @@ def crear_cubo(n=8):
     """Crea un cubo vacío de N×N×N celdas
 
     Recibe:
-        n (int): tamaño del cubo. Default: 8
+     tamaño del cubo.
 
     Devuelve:
-        list: cubo como lista de listas de listas, celdas inicializadas con "~"
+       cubo como lista de listas de listas, celdas inicializadas con "~"
 
     Excepciones:
         Ninguna"""
@@ -25,8 +25,8 @@ def punto_valido(punto, n):
     """Valida si un punto está dentro del cubo
 
     Recibe:
-        punto (tuple): coordenadas (z, x, y)
-        n (int): tamaño del cubo
+        coordenadas (z, x, y)
+        tamaño del cubo
 
     Devuelve:
         bool: True si 1 <= z,x,y <= n. False si no
@@ -45,11 +45,11 @@ def dibujar_plano_z(cubo, z):
     """Dibuja una capa del cubo fijando el valor de z
 
     Recibe:
-        cubo (list): cubo de juego
-        z (int): número de la capa (1 a N)
+        cubo de juego
+        número de la capa (1 a N)
 
     Devuelve:
-        str: representación en texto del plano
+        representación en texto del plano
 
     Excepciones:
         Ninguna"""
@@ -71,11 +71,11 @@ def sumar_matrices(a, b):
     """Suma dos matrices elemento a elemento
 
     Recibe:
-        a (list): primera matriz
-        b (list): segunda matriz del mismo tamaño
+      primera matriz
+      segunda matriz del mismo tamaño
 
     Devuelve:
-        list: matriz resultado de a + b
+      matriz resultado de a + b
 
     Excepciones:
         Ninguna"""
@@ -140,7 +140,7 @@ def transponer_matriz(matriz):
     """Obtiene la matriz transpuesta
 
     Recibe:
-        matriz (list): matriz original
+       matriz original
 
     Devuelve:
         list: matriz transpuesta
@@ -154,3 +154,110 @@ def transponer_matriz(matriz):
             fila.append(matriz[i][j])
         resultado.append(fila)
     return resultado
+
+
+def dibujar_plano_x(cubo, x):
+    """Dibuja un plano fijando x.
+
+    Recibe:
+      cubo de juego
+      coordenada x del plano
+    Devuelve:
+      representación del plano
+    Excepciones:
+        Ninguna"""
+
+    dibujo = f"========= PLANO x = {x} =========\n"
+
+    dibujo += "    "
+    for z in range(len(cubo)):
+        dibujo += f"z{z + 1} "
+    dibujo += "\n"
+
+    for y in range(len(cubo[0])):
+        dibujo += f"y{y + 1}  "
+        for z in range(len(cubo)):
+            dibujo += f"{cubo[z][y][x - 1]}  "
+        dibujo += "\n"
+
+    return dibujo
+
+
+def dibujar_plano_y(cubo, y):
+    """Dibuja un plano fijando y.
+
+    Recibe:
+       cubo
+       coordenada y del plano
+    Devuelve:
+        representación del plano
+      Excepciones:
+        Ninguna"""
+    dibujo = f"========= PLANO y = {y} =========\n"
+
+    dibujo += "    "
+    for x in range(len(cubo[0][y - 1])):
+        dibujo += f"x{x + 1} "
+    dibujo += "\n"
+
+    for z in range(len(cubo)):
+        dibujo += f"z{z + 1}  "
+        for x in range(len(cubo[z][y - 1])):
+            dibujo += f"{cubo[z][y - 1][x]}  "
+        dibujo += "\n"
+
+    return dibujo
+def obtener_vecinos(cubo, punto):
+    """Obtiene los vecinos directos
+    Recibe:
+        cubo
+        punto
+
+    Devuelve:
+        lista de coordenadas vecinas válidas
+
+    Excepciones:
+        Ninguna
+    """
+    z, x, y = punto
+    vecinos = []
+    n = len(cubo)
+
+    puntos = [
+        (z - 1, x, y),
+        (z + 1, x, y),
+        (z, x - 1, y),
+        (z, x + 1, y),
+        (z, x, y - 1),
+        (z, x, y + 1)
+    ]
+
+    for p in puntos:
+        if punto_valido(p, n):
+            vecinos.append(p)
+
+    return vecinos
+
+
+def recorrer_por_capas(cubo):
+    """Recorre el cubo por capas de z.
+
+    Recibe:
+        cubo (list): cubo de juego.
+
+    Devuelve:
+        list: puntos recorridos en orden (z, x, y).
+
+     Excepciones:
+        Ninguna"""
+
+    recorrido = []
+    n = len(cubo)
+
+    for z in range(1, n + 1):
+        for y in range(1, n + 1):
+            for x in range(1, n + 1):
+                punto = (z, x, y)
+                recorrido.append(punto)
+
+    return recorrido
