@@ -1,9 +1,9 @@
 import re
 
-# Funciones de Validacion
+# Funciones de validacion
 
 def pedir_opcion_menu(texto_input, limite_opciones=5):
-    patron = rf"^[1-{limite_opciones}]$"                            # Aca con rf asignamos los parametros que se pueden usar [1-5]
+    patron = rf"^[1-{limite_opciones}]$"
     while True:
         entrada = input(texto_input)
         if re.match(patron, entrada):
@@ -35,7 +35,7 @@ def opcion_continuar():
 
 def opcion_salir():
     print("Saliendo del juego...")
-    return False                         # Aca retorna false para cortar el bucle principal
+    return False
 
 
 # Funcion para seleccionar opcion del menu
@@ -49,6 +49,7 @@ def ejecutar_menu_principal():
         "4": opcion_continuar,
         "5": opcion_salir
     }
+
     continuar = True
     while continuar == True:
         print("===== OPERACION CUBO =====")
@@ -57,15 +58,12 @@ def ejecutar_menu_principal():
         print("3 - Partida maquina contra maquina")
         print("4 - Continuar una partida guardada")
         print("5 - Salir")
-        
+
         opcion = pedir_opcion_menu("Opcion: ", limite_opciones=5)
-        
-        accion = rutas_menu.get(opcion)          # Usamos get para que devuelva none en caso de no estar la opcion en lugar de error
-        
+
+        accion = rutas_menu.get(opcion)
+
         if accion != None:
             continuar = accion()
 
 
-# Bloque para poder probarlo directamente
-if __name__ == "__main__":
-    ejecutar_menu_principal()
