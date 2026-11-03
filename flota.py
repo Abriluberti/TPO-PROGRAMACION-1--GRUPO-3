@@ -1,8 +1,8 @@
 import random
+import armamento
 
 def colocar_fragata(cubo, tupla_inicio, tupla_final): #2x1
-
- """Recibe: el cubo, la tupla DESDE y la tupla HASTA.
+    """Recibe: el cubo, la tupla DESDE y la tupla HASTA.
     Devuelve el cubo con la nave ubicada."""
     a=tupla_inicio[0]-1
     b=tupla_inicio[1]-1
@@ -339,6 +339,50 @@ def verificar_impactos(cubo, celdas):
 #"abajo" and cubo[z][y+1][x] == "?")
 
 ###############################################################################################
+
+def ubicacion_manual(cubo, catalogo, semilla=None):
+    #Coloco Fragata
+    print("Colocando Fragata (2x1)")
+    coordenada1=input("Ingresá 3 dígitos separados por espacios de la coordenada 'DESDE': ")
+    tupla_inicio = tuple(int(x) for x in coordenada1.split())
+    #valido1=_validar_punto(tupla_inicio, cubo_jugador_1)
+
+    coordenada2=input("Ingresá 3 dígitos separados por espacios de la coordenada 'HASTA': ")
+    tupla_final = tuple(int(x) for x in coordenada2.split())
+    #valido2=_validar_punto(tupla_final, cubo_jugador_1)
+    #if valido1 or valido2 == False:
+        #raise ValueError("Coordenadas inválidas. Deben ser enteros entre 1 y " + str(len(cubo_jugador_1)))
+    cubo_jugador_1=colocar_fragata(cubo, tupla_inicio, tupla_final)
+    
+    #Coloco Destructor
+    print("Colocando Destructor (3x1)")
+    coordenada1=input("Ingresá 3 dígitos separados por espacios de la coordenada 'DESDE': ")
+    tupla_inicio = tuple(int(x) for x in coordenada1.split())
+    #valido1=_validar_punto(tupla_inicio, cubo_jugador_1)
+    
+    coordenada2=input("Ingresá 3 dígitos separados por espacios de la coordenada 'HASTA': ")
+    tupla_final = tuple(int(x) for x in coordenada2.split())
+    #valido2=_validar_punto(tupla_final, cubo_jugador_1)
+    #if valido1 or valido2 == False:
+        #raise ValueError("Coordenadas inválidas. Deben ser enteros entre 1 y " + str(len(cubo_jugador_1)))
+    cubo_jugador_1=colocar_destructor(cubo, tupla_inicio, tupla_final)
+
+    #Coloco Submarino
+    print("Colocando Submarino (3x1)")
+    coordenada1=input("Ingresá 3 dígitos separados por espacios de la coordenada 'DESDE': ")
+    tupla_inicio = tuple(int(x) for x in coordenada1.split())
+    #valido1=_validar_punto(tupla_inicio, cubo_jugador_1)
+    
+    coordenada2=input("Ingresá 3 dígitos separados por espacios de la coordenada 'HASTA': ")
+    tupla_final = tuple(int(x) for x in coordenada2.split())
+    #valido2=_validar_punto(tupla_final, cubo_jugador_1)
+    #if valido1 or valido2 == False:
+        #raise ValueError("Coordenadas inválidas. Deben ser enteros entre 1 y " + str(len(cubo_jugador_1)))
+    cubo_jugador_1=colocar_submarino(cubo, tupla_inicio, tupla_final)
+    return flota
+
+
+
 
 def ubicacion_automatica(cubo, catalogo, semilla=None):
     """

@@ -93,7 +93,7 @@ def nueva_partida_1v1(configuracion):
     cubo_jugador_1 = tablero.crear_cubo(n_max)
     cubo_jugador_2 = tablero.crear_cubo(n_max)
 
-    flota_jugador_1 = flota.ubicacion_automatica(
+    flota_jugador_1 = flota.ubicacion_manual(
         cubo_jugador_1, flota.CATALOGO_NAVES, 1
     )
 
