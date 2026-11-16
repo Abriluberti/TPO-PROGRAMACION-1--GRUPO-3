@@ -9,7 +9,8 @@ def _validar_punto(punto, n):
     for valor in punto:
         if not isinstance(valor, int) or isinstance(valor, bool):
             return False
-        if valor < 1 or valor > n:
+
+        if valor < 1 or valor > len(cubo):
             return False
 
     return True

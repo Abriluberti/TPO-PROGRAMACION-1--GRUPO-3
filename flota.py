@@ -1,597 +1,425 @@
 import random
-def colocar_fragata(cubo):
-    """
-    Recibe el cubo y solicita la posición de una fragata.
-    Devuelve el cubo con la fragata ubicada.
-    """
+import armamento
 
-    n = len(cubo)
+def colocar_fragata(cubo,fragata, tupla_inicio, tupla_final): #2x1
+    a=tupla_inicio[0]-1
+    b=tupla_inicio[1]-1
+    c=tupla_inicio[2]-1
+    fragata=[]
+    z=tupla_final[0]-1
+    x=tupla_final[1]-1
+    y=tupla_final[2]-1
+    
+    if (a!=z and b!=x) or (a!=z and c!=y) or (b!=x and c!=y):
+        print("Las celdas no son continuas")
+        return False,fragata
+    
+    # Si varía en el eje Z (profundidad)
+    if b == x and c == y:
+        if max(a, z) - min(a, z)!=1:
+            print("La nave debe ocupar 2 espacios")
+            return False,fragata
+        for i in range(min(a, z), max(a, z) + 1):
+            if cubo[i][c][b] == "?":
+                print("Ya hay otra nave ocupando esa posición.")
+                return False,fragata
+        for i in range(min(a, z), max(a, z) + 1):
+            cubo[i][c][b] = "?"
+            fragata.append((i+1,b+1,c+1))
+        print("Fragata colocada")
 
-    while True:
-        x = input("Elije la coordenada X de la proa de la Fragata: ")
-        while not x.isdigit() or int(x) < 1 or int(x) > n:
-            print("Error - Coordenada fuera del cubo")
-            x = input("Elije la coordenada X entre 1 y " + str(n) + ": ")
-        x = int(x) - 1
+    # Si varía en el eje X (longitud)
+    if a == z and c == y:
+        if max(b, x) - min(b, x) !=1:
+            print("La nave debe ocupar 2 espacios")
+            return False,fragata
+        for j in range(min(b, x), max(b, x) + 1):
+            if cubo[a][c][j] == "?":
+                print("Ya hay otra nave ocupando esa posición.")
+                return False,fragata
+        for j in range(min(b, x), max(b, x) + 1):
+            cubo[a][c][j] = "?"
+            fragata.append((a+1,j+1,c+1))
+        print("Fragata colocada")
 
-        y = input("Elije la coordenada Y de la proa de la Fragata: ")
-        while not y.isdigit() or int(y) < 1 or int(y) > n:
-            print("Error - Coordenada fuera del cubo")
-            y = input("Elije la coordenada Y entre 1 y " + str(n) + ": ")
-        y = int(y) - 1
-
-        z = input("Elije la coordenada Z de la proa de la Fragata: ")
-        while not z.isdigit() or int(z) < 1 or int(z) > n:
-            print("Error - Coordenada fuera del cubo")
-            z = input("Elije la coordenada Z entre 1 y " + str(n) + ": ")
-        z = int(z) - 1
-
-        if cubo[z][y][x] != "~":
-            print("Error: ya hay una nave ocupando esa posición.")
-            continue
-
-        sentido = input("Elige 'vertical' u 'horizontal': ").strip().lower()
-
-        while sentido != "vertical" and sentido != "horizontal":
-            print("Error: ingrese un sentido válido")
-            sentido = input("Elige 'vertical' u 'horizontal': ").strip().lower()
-
-        if sentido == "vertical":
-            direccion = input("Elige 'arriba' o 'abajo': ").strip().lower()
-
-            while direccion != "arriba" and direccion != "abajo":
-                print("Error: ingrese una dirección válida")
-                direccion = input("Elige 'arriba' o 'abajo': ").strip().lower()
-
-            if direccion == "arriba":
-                celdas = [(z, y, x), (z, y - 1, x)]
-            else:
-                celdas = [(z, y, x), (z, y + 1, x)]
-
-        else:
-            direccion = input(
-                "Elige 'derecha', 'izquierda', 'atras' o 'adelante': "
-            ).strip().lower()
-
-            while direccion not in ("derecha", "izquierda", "atras", "adelante"):
-                print("Error: ingrese una dirección válida")
-                direccion = input(
-                    "Elige 'derecha', 'izquierda', 'atras' o 'adelante': "
-                ).strip().lower()
-
-            if direccion == "derecha":
-                celdas = [(z, y, x), (z, y, x + 1)]
-            elif direccion == "izquierda":
-                celdas = [(z, y, x), (z, y, x - 1)]
-            elif direccion == "atras":
-                celdas = [(z, y, x), (z + 1, y, x)]
-            else:
-                celdas = [(z, y, x), (z - 1, y, x)]
-
-        if posicion_valida(cubo, celdas):
-            for z_celda, y_celda, x_celda in celdas:
-                cubo[z_celda][y_celda][x_celda] = "?"
-            return cubo
-
-        print("Error: la fragata sale del cubo, ocupa una casilla ocupada o toca otra nave.")
-        print("Intenta colocarla nuevamente.")
-
+    # Si varía en el eje Y (altura)
+    if a == z and b == x:
+        if max(c, y) - min(c, y) !=1:
+            print("La nave debe ocupar 2 espacios")
+            return False,fragata
+        for k in range(min(c, y), max(c, y) + 1):
+            if cubo[a][k][b] == "?":
+                print("Ya hay otra nave ocupando esa posición.")
+                return False,fragata
+        for k in range(min(c, y), max(c, y) + 1):
+            cubo[a][k][b] = "?"
+            fragata.append((a+1,b+1,k+1))
+        print("Fragata colocada")
+            
+    return cubo,fragata
 ###############################################################################################################
+def colocar_destructor(cubo, destructor, tupla_inicio, tupla_final): #3x1
+    a=tupla_inicio[0]-1
+    b=tupla_inicio[1]-1
+    c=tupla_inicio[2]-1
+    destructor=[]
+    z=tupla_final[0]-1
+    x=tupla_final[1]-1
+    y=tupla_final[2]-1
+    
+    if (a!=z and b!=x) or (a!=z and c!=y) or (b!=x and c!=y):
+        print("Las celdas no son continuas")
+        return False,destructor
+    
+    # Si varía en el eje Z (profundidad)
+    if b == x and c == y:
+        if max(a, z) - min(a, z)!=2:
+            print("La nave debe ocupar 3 espacios")
+            return False,destructor
+        for i in range(min(a, z), max(a, z) + 1):
+            if cubo[i][c][b] == "?":
+                print("Ya hay otra nave ocupando esa posición.")
+                return False,destructor
+        for i in range(min(a, z), max(a, z) + 1):
+            cubo[i][c][b] = "?"
+            destructor.append((i+1,b+1,c+1))
+        print("Destructor colocado")
 
-def colocar_destructor(cubo):
-    """
-    Recibe el cubo y solicita la posición de un destructor.
-    Devuelve el cubo con el destructor ubicado.
-    """
+    # Si varía en el eje X (longitud)
+    if a == z and c == y:
+        if max(b, x) - min(b, x)!=2:
+            print("La nave debe ocupar 3 espacios")
+            return False,destructor
+        for j in range(min(b, x), max(b, x) + 1):
+            if cubo[a][c][j] == "?":
+                print("Ya hay otra nave ocupando esa posición.")
+                return False,destructor
+        for j in range(min(b, x), max(b, x) + 1):
+            cubo[a][c][j] = "?"
+            destructor.append((a+1,j+1,c+1))
+        print("Destructor colocado")
 
-    n = len(cubo)
-
-    while True:
-        x = input("Elije la coordenada X de la proa del Destructor: ")
-        while not x.isdigit() or int(x) < 1 or int(x) > n:
-            print("Error - Coordenada fuera del cubo")
-            x = input("Elije la coordenada X entre 1 y " + str(n) + ": ")
-        x = int(x) - 1
-
-        y = input("Elije la coordenada Y de la proa del Destructor: ")
-        while not y.isdigit() or int(y) < 1 or int(y) > n:
-            print("Error - Coordenada fuera del cubo")
-            y = input("Elije la coordenada Y entre 1 y " + str(n) + ": ")
-        y = int(y) - 1
-
-        z = input("Elije la coordenada Z de la proa del Destructor: ")
-        while not z.isdigit() or int(z) < 1 or int(z) > n:
-            print("Error - Coordenada fuera del cubo")
-            z = input("Elije la coordenada Z entre 1 y " + str(n) + ": ")
-        z = int(z) - 1
-
-        sentido = input("Elige 'vertical' u 'horizontal': ").strip().lower()
-
-        while sentido not in ("vertical", "horizontal"):
-            print("Error: ingrese un sentido válido")
-            sentido = input("Elige 'vertical' u 'horizontal': ").strip().lower()
-
-        if sentido == "vertical":
-            direccion = input("Elige 'arriba' o 'abajo': ").strip().lower()
-
-            while direccion not in ("arriba", "abajo"):
-                print("Error: ingrese una dirección válida")
-                direccion = input("Elige 'arriba' o 'abajo': ").strip().lower()
-
-            if direccion == "arriba":
-                celdas = [
-                    (z, y, x),
-                    (z, y - 1, x),
-                    (z, y - 2, x)
-                ]
-            else:
-                celdas = [
-                    (z, y, x),
-                    (z, y + 1, x),
-                    (z, y + 2, x)
-                ]
-
-        else:
-            direccion = input(
-                "Elige 'derecha', 'izquierda', 'atras' o 'adelante': "
-            ).strip().lower()
-
-            while direccion not in ("derecha", "izquierda", "atras", "adelante"):
-                print("Error: ingrese una dirección válida")
-                direccion = input(
-                    "Elige 'derecha', 'izquierda', 'atras' o 'adelante': "
-                ).strip().lower()
-
-            if direccion == "derecha":
-                celdas = [
-                    (z, y, x),
-                    (z, y, x + 1),
-                    (z, y, x + 2)
-                ]
-            elif direccion == "izquierda":
-                celdas = [
-                    (z, y, x),
-                    (z, y, x - 1),
-                    (z, y, x - 2)
-                ]
-            elif direccion == "atras":
-                celdas = [
-                    (z, y, x),
-                    (z + 1, y, x),
-                    (z + 2, y, x)
-                ]
-            else:
-                celdas = [
-                    (z, y, x),
-                    (z - 1, y, x),
-                    (z - 2, y, x)
-                ]
-
-        if posicion_valida(cubo, celdas):
-            for z_celda, y_celda, x_celda in celdas:
-                cubo[z_celda][y_celda][x_celda] = "?"
-            return cubo
-
-        print("Error: el destructor sale del cubo, ocupa una casilla ocupada o toca otra nave.")
-        print("Intenta colocar el destructor nuevamente.")
-
+    # Si varía en el eje Y (altura)
+    if a == z and b == x:
+        if max(c, y) - min(c, y) !=2:
+            print("La nave debe ocupar 3 espacios")
+            return False,destructor
+        for k in range(min(c, y), max(c, y) + 1):
+            if cubo[a][k][b] == "?":
+                print("Ya hay otra nave ocupando esa posición.")
+                return False,destructor
+        for k in range(min(c, y), max(c, y) + 1):
+            cubo[a][k][b] = "?"
+            destructor.append((a+1,b+1,k+1))
+        print("Destructor colocado")
+            
+    return cubo,destructor
 
 #############################################################################################################
 
+def colocar_submarino(cubo, submarino, tupla_inicio, tupla_final): #3x1 y parte inferior del eje Z
+    a=tupla_inicio[0]-1
+    b=tupla_inicio[1]-1
+    c=tupla_inicio[2]-1
+    submarino=[]
+    z=tupla_final[0]-1
+    x=tupla_final[1]-1
+    y=tupla_final[2]-1
+    if c+1<=len(cubo)/2 or y+1<=len(cubo)/2:
+        print("El submarino no puede colocarse tan alto")
+        return False,submarino
+    #Comprueba que el submarino este en la mitad inferior del eje Z.
+    
+    if (a!=z and b!=x) or (a!=z and c!=y) or (b!=x and c!=y):
+        print("Las celdas no son continuas")
+        return False,submarino
+    #Comprueba que las celdas esten en linea.
+    
+    # Si varía en el eje Z (profundidad)
+    if b == x and c == y:
+        if max(a, z) - min(a, z)!=2:
+            print("La nave debe ocupar 3 espacios")
+            return False,submarino
+        for i in range(min(a, z), max(a, z) + 1):
+            if cubo[i][c][b] == "?":
+                print("Ya hay otra nave ocupando esa posición.")
+                return False,submarino
+        for i in range(min(a, z), max(a, z) + 1):
+            cubo[i][c][b] = "?"
+            submarino.append((i+1,b+1,c+1))
+        print("Submarino colocado")
 
-def colocar_submarino(cubo):
-    """
-    Recibe el cubo y solicita la posición de un submarino.
-    Devuelve el cubo con el submarino ubicado.
-    """
+    # Si varía en el eje X (longitud)
+    if a == z and c == y:
+        if max(b, x) - min(b, x)!=2:
+            print("La nave debe ocupar 3 espacios")
+            return False,submarino
+        for j in range(min(b, x), max(b, x) + 1):
+            if cubo[a][c][j] == "?":
+                print("Ya hay otra nave ocupando esa posición.")
+                return False,submarino
+        submarino=[]
+        for j in range(min(b, x), max(b, x) + 1):
+            cubo[a][c][j] = "?"
+            submarino.append((a+1,j+1,c+1))
+        print("Submarino colocado")
 
-    n = len(cubo)
-    mitad = n // 2
-
-    while True:
-        x = input("Elije la coordenada X de la proa del Submarino: ")
-        while not x.isdigit() or int(x) < 1 or int(x) > n:
-            print("Error - Coordenada fuera del cubo")
-            x = input("Elije la coordenada X entre 1 y " + str(n) + ": ")
-        x = int(x) - 1
-
-        y = input("Elije la coordenada Y de la proa del Submarino: ")
-        while not y.isdigit() or int(y) < 1 or int(y) > n:
-            print("Error - Coordenada fuera del cubo")
-            y = input("Elije la coordenada Y entre 1 y " + str(n) + ": ")
-        y = int(y) - 1
-
-        z = input(
-            "Elije la coordenada Z entre " + str(mitad + 1) +
-            " y " + str(n) + ": "
-        )
-        while not z.isdigit() or int(z) < mitad + 1 or int(z) > n:
-            print("Error - El submarino debe estar en la mitad inferior del cubo")
-            z = input(
-                "Elije la coordenada Z entre " + str(mitad + 1) +
-                " y " + str(n) + ": "
-            )
-        z = int(z) - 1
-
-        sentido = input("Elige 'vertical' u 'horizontal': ").strip().lower()
-
-        while sentido not in ("vertical", "horizontal"):
-            print("Error: ingrese un sentido válido")
-            sentido = input("Elige 'vertical' u 'horizontal': ").strip().lower()
-
-        if sentido == "vertical":
-            direccion = input("Elige 'arriba' o 'abajo': ").strip().lower()
-
-            while direccion not in ("arriba", "abajo"):
-                print("Error: ingrese una dirección válida")
-                direccion = input("Elige 'arriba' o 'abajo': ").strip().lower()
-
-            if direccion == "arriba":
-                celdas = [
-                    (z, y, x),
-                    (z, y - 1, x),
-                    (z, y - 2, x)
-                ]
-            else:
-                celdas = [
-                    (z, y, x),
-                    (z, y + 1, x),
-                    (z, y + 2, x)
-                ]
-
-        else:
-            direccion = input(
-                "Elige 'derecha', 'izquierda', 'atras' o 'adelante': "
-            ).strip().lower()
-
-            while direccion not in ("derecha", "izquierda", "atras", "adelante"):
-                print("Error: ingrese una dirección válida")
-                direccion = input(
-                    "Elige 'derecha', 'izquierda', 'atras' o 'adelante': "
-                ).strip().lower()
-
-            if direccion == "derecha":
-                celdas = [
-                    (z, y, x),
-                    (z, y, x + 1),
-                    (z, y, x + 2)
-                ]
-            elif direccion == "izquierda":
-                celdas = [
-                    (z, y, x),
-                    (z, y, x - 1),
-                    (z, y, x - 2)
-                ]
-            elif direccion == "atras":
-                celdas = [
-                    (z, y, x),
-                    (z + 1, y, x),
-                    (z + 2, y, x)
-                ]
-            else:
-                celdas = [
-                    (z, y, x),
-                    (z - 1, y, x),
-                    (z - 2, y, x)
-                ]
-
-        mitad_inferior = True
-
-        for z_celda, y_celda, x_celda in celdas:
-            if z_celda < mitad:
-                mitad_inferior = False
-
-        if mitad_inferior and posicion_valida(cubo, celdas):
-            for z_celda, y_celda, x_celda in celdas:
-                cubo[z_celda][y_celda][x_celda] = "?"
-            return cubo
-
-        print(
-            "Error: el submarino sale del cubo, ocupa una casilla ocupada, "
-            "toca otra nave o sale de la mitad inferior."
-        )
-        print("Intenta colocar el submarino nuevamente.")
+    # Si varía en el eje Y (altura)
+    if a == z and b == x:
+        if max(c, y) - min(c, y) !=2:
+            print("La nave debe ocupar 3 espacios")
+            return False,submarino
+        for k in range(min(c, y), max(c, y) + 1):
+            if cubo[a][k][b] == "?":
+                print("Ya hay otra nave ocupando esa posición.")
+                return False,submarino
+        for k in range(min(c, y), max(c, y) + 1):
+            cubo[a][k][b] = "?"
+            submarino.append((a+1,b+1,k+1))
+        print("Submarino colocado")
+            
+    return cubo,submarino
 
 ############################################################################################################
+def colocar_crucero(cubo, crucero, tupla_inicio, tupla_final): #4x1 y Z!=1 y Z!=len(cubo)
+    a=tupla_inicio[0]-1
+    b=tupla_inicio[1]-1
+    c=tupla_inicio[2]-1
+    crucero=[]
+    z=tupla_final[0]-1
+    x=tupla_final[1]-1
+    y=tupla_final[2]-1
+    if a==0 or z==0 or a==len(cubo)-1 or z==len(cubo)-1:
+        print("El crucero no puede colocarse en los bordes del eje Z")
+        return False,crucero
+    #Verifica que la nave no se encuentre en los bordes del eje Z.
+    
+    if (a!=z and b!=x) or (a!=z and c!=y) or (b!=x and c!=y):
+        print("Las celdas no son continuas")
+        return False,crucero
+    #Verifica que las celdas esten en linea.
+    
+    # Si varía en el eje Z (profundidad)
+    if b == x and c == y:
+        if max(a, z) - min(a, z)!=3:
+            print("La nave debe ocupar 4 espacios")
+            return False,crucero
+        for i in range(min(a, z), max(a, z) + 1):
+            if cubo[i][c][b] == "?":
+                print("Ya hay otra nave ocupando esa posición.")
+                return False,crucero
+        for i in range(min(a, z), max(a, z) + 1):
+            cubo[i][c][b] = "?"
+            crucero.append((i+1,b+1,c+1))
+        print("Crucero colocado")
 
+    # Si varía en el eje X (longitud)
+    if a == z and c == y:
+        if max(b, x) - min(b, x)!=3:
+            print("La nave debe ocupar 4 espacios")
+            return False,crucero
+        for j in range(min(b, x), max(b, x) + 1):
+            if cubo[a][c][j] == "?":
+                print("Ya hay otra nave ocupando esa posición.")
+                return False,crucero
+        for j in range(min(b, x), max(b, x) + 1):
+            cubo[a][c][j] = "?"
+            crucero.append((a+1,j+1,c+1))
+        print("Crucero colocado")
 
-def colocar_crucero(cubo):
-    """
-    Recibe el cubo y solicita la posición del crucero.
-    Devuelve el cubo con el crucero ubicado.
-    El crucero ocupa 4 celdas y no puede estar en los extremos de Z.
-    """
-
-    n = len(cubo)
-
-    while True:
-        x = input("Elije la coordenada X de la proa del Crucero: ")
-        while not x.isdigit() or int(x) < 1 or int(x) > n:
-            print("Error - Coordenada fuera del cubo")
-            x = input("Elije la coordenada X entre 1 y " + str(n) + ": ")
-        x = int(x) - 1
-
-        y = input("Elije la coordenada Y de la proa del Crucero: ")
-        while not y.isdigit() or int(y) < 1 or int(y) > n:
-            print("Error - Coordenada fuera del cubo")
-            y = input("Elije la coordenada Y entre 1 y " + str(n) + ": ")
-        y = int(y) - 1
-
-        z = input("Elije la coordenada Z entre 2 y " + str(n - 1) + ": ")
-        while not z.isdigit() or int(z) < 2 or int(z) > n - 1:
-            print("Error - El crucero no puede ocupar los extremos de Z")
-            z = input("Elije la coordenada Z entre 2 y " + str(n - 1) + ": ")
-        z = int(z) - 1
-
-        sentido = input("Elige 'vertical' u 'horizontal': ").lower()
-
-        while sentido != "vertical" and sentido != "horizontal":
-            print("Error: ingrese un sentido válido")
-            sentido = input("Elige 'vertical' u 'horizontal': ").lower()
-
-        if sentido == "vertical":
-            direccion = input("Elige 'arriba' o 'abajo': ").lower()
-
-            while direccion != "arriba" and direccion != "abajo":
-                print("Error: ingrese una dirección válida")
-                direccion = input("Elige 'arriba' o 'abajo': ").lower()
-
-            if direccion == "arriba":
-                celdas = [
-                    (z, y, x),
-                    (z, y - 1, x),
-                    (z, y - 2, x),
-                    (z, y - 3, x)
-                ]
-            else:
-                celdas = [
-                    (z, y, x),
-                    (z, y + 1, x),
-                    (z, y + 2, x),
-                    (z, y + 3, x)
-                ]
-
-        else:
-            direccion = input(
-                "Elige 'derecha', 'izquierda', 'atras' o 'adelante': "
-            ).lower()
-
-            while direccion not in ("derecha", "izquierda", "atras", "adelante"):
-                print("Error: ingrese una dirección válida")
-                direccion = input(
-                    "Elige 'derecha', 'izquierda', 'atras' o 'adelante': "
-                ).lower()
-
-            if direccion == "derecha":
-                celdas = [
-                    (z, y, x),
-                    (z, y, x + 1),
-                    (z, y, x + 2),
-                    (z, y, x + 3)
-                ]
-            elif direccion == "izquierda":
-                celdas = [
-                    (z, y, x),
-                    (z, y, x - 1),
-                    (z, y, x - 2),
-                    (z, y, x - 3)
-                ]
-            elif direccion == "atras":
-                celdas = [
-                    (z, y, x),
-                    (z + 1, y, x),
-                    (z + 2, y, x),
-                    (z + 3, y, x)
-                ]
-            else:
-                celdas = [
-                    (z, y, x),
-                    (z - 1, y, x),
-                    (z - 2, y, x),
-                    (z - 3, y, x)
-                ]
-
-        celdas_validas = True
-
-        for z_celda, y_celda, x_celda in celdas:
-            if z_celda < 0 or z_celda >= n:
-                celdas_validas = False
-            elif y_celda < 0 or y_celda >= n:
-                celdas_validas = False
-            elif x_celda < 0 or x_celda >= n:
-                celdas_validas = False
-            elif z_celda == 0 or z_celda == n - 1:
-                celdas_validas = False
-
-        if celdas_validas and posicion_valida(cubo, celdas):
-            for z_celda, y_celda, x_celda in celdas:
-                cubo[z_celda][y_celda][x_celda] = "?"
-
-            return cubo
-
-        print("Error: la posición no es válida.")
-        print("El crucero sale del cubo, ocupa una celda ocupada o toca otra nave.")
-        print("Intenta ubicarlo nuevamente.")
-
+    # Si varía en el eje Y (altura)
+    if a == z and b == x:
+        if max(c, y) - min(c, y) !=3:
+            print("La nave debe ocupar 4 espacios")
+            return False,crucero
+        for k in range(min(c, y), max(c, y) + 1):
+            if cubo[a][k][b] == "?":
+                print("Ya hay otra nave ocupando esa posición.")
+                return False,crucero
+        for k in range(min(c, y), max(c, y) + 1):
+            cubo[a][k][b] = "?"
+            crucero.append((a+1,b+1,k+1))
+        print("Crucero colocado")
+            
+    return cubo,crucero
 ###################################################################
+def colocar_portaaviones(cubo, portaaviones, tupla_inicio, tupla_final): #5x1 y parte superior del eje Z
+    a=tupla_inicio[0]-1
+    b=tupla_inicio[1]-1
+    c=tupla_inicio[2]-1
+    portaaviones=[]
+    z=tupla_final[0]-1
+    x=tupla_final[1]-1
+    y=tupla_final[2]-1
+    if c+1>len(cubo)/2 or y+1>len(cubo)/2:
+        print("El portaaviones no puede colocarse tan bajo")
+        return False,portaaviones
+    #Comprueba que el portaaviones este en la mitad superior del eje Z.
+    
+    if (a!=z and b!=x) or (a!=z and c!=y) or (b!=x and c!=y):
+        print("Las celdas no son continuas")
+        return False,portaaviones
+    #Comprueba que las celdas esten en linea.
+    
+    # Si varía en el eje Z (profundidad)
+    if b == x and c == y:
+        if max(a, z) - min(a, z)!=4:
+            print("La nave debe ocupar 5 espacios")
+            return False,portaaviones
+        for i in range(min(a, z), max(a, z) + 1):
+            if cubo[i][c][b] == "?":
+                print("Ya hay otra nave ocupando esa posición.")
+                return False,portaaviones
+        for i in range(min(a, z), max(a, z) + 1):
+            cubo[i][c][b] = "?"
+            portaaviones.append((i+1,b+1,c+1))
+        print("Portaaviones colocado")
 
-def colocar_portaaviones(cubo):
-    """
-    Recibe el cubo y solicita la posición del portaaviones.
-    Devuelve el cubo con el portaaviones ubicado.
-    El portaaviones ocupa 5 celdas en la mitad superior de Z.
-    """
+    # Si varía en el eje X (longitud)
+    if a == z and c == y:
+        if max(b, x) - min(b, x)!=4:
+            print("La nave debe ocupar 5 espacios")
+            return False,portaaviones
+        for j in range(min(b, x), max(b, x) + 1):
+            if cubo[a][c][j] == "?":
+                print("Ya hay otra nave ocupando esa posición.")
+                return False,portaaviones
+        for j in range(min(b, x), max(b, x) + 1):
+            cubo[a][c][j] = "?"
+            portaaviones.append((a+1,j+1,c+1))
+        print("Portaaviones colocado")
 
-    n = len(cubo)
-    mitad = n // 2
-
-    while True:
-        x = input("Elije la coordenada X de la proa del Portaaviones: ")
-        while not x.isdigit() or int(x) < 1 or int(x) > n:
-            print("Error - Coordenada fuera del cubo")
-            x = input("Elije X entre 1 y " + str(n) + ": ")
-        x = int(x) - 1
-
-        y = input("Elije la coordenada Y de la proa del Portaaviones: ")
-        while not y.isdigit() or int(y) < 1 or int(y) > n:
-            print("Error - Coordenada fuera del cubo")
-            y = input("Elije Y entre 1 y " + str(n) + ": ")
-        y = int(y) - 1
-
-        z = input(
-            "Elije la coordenada Z entre 1 y " + str(mitad) + ": "
-        )
-        while not z.isdigit() or int(z) < 1 or int(z) > mitad:
-            print("Error - El portaaviones debe estar en la mitad superior de Z")
-            z = input(
-                "Elije Z entre 1 y " + str(mitad) + ": "
-            )
-        z = int(z) - 1
-
-        sentido = input("Elige 'vertical' u 'horizontal': ").strip().lower()
-
-        while sentido not in ("vertical", "horizontal"):
-            print("Error: ingrese un sentido válido")
-            sentido = input("Elige 'vertical' u 'horizontal': ").strip().lower()
-
-        if sentido == "vertical":
-            direccion = input("Elige 'arriba' o 'abajo': ").strip().lower()
-
-            while direccion not in ("arriba", "abajo"):
-                print("Error: ingrese una dirección válida")
-                direccion = input("Elige 'arriba' o 'abajo': ").strip().lower()
-
-            if direccion == "arriba":
-                celdas = [
-                    (z, y, x), (z, y - 1, x), (z, y - 2, x),
-                    (z, y - 3, x), (z, y - 4, x)
-                ]
-            else:
-                celdas = [
-                    (z, y, x), (z, y + 1, x), (z, y + 2, x),
-                    (z, y + 3, x), (z, y + 4, x)
-                ]
-
-        else:
-            direccion = input(
-                "Elige 'derecha', 'izquierda', 'atras' o 'adelante': "
-            ).strip().lower()
-
-            while direccion not in ("derecha", "izquierda", "atras", "adelante"):
-                print("Error: ingrese una dirección válida")
-                direccion = input(
-                    "Elige 'derecha', 'izquierda', 'atras' o 'adelante': "
-                ).strip().lower()
-
-            if direccion == "derecha":
-                celdas = [
-                    (z, y, x), (z, y, x + 1), (z, y, x + 2),
-                    (z, y, x + 3), (z, y, x + 4)
-                ]
-            elif direccion == "izquierda":
-                celdas = [
-                    (z, y, x), (z, y, x - 1), (z, y, x - 2),
-                    (z, y, x - 3), (z, y, x - 4)
-                ]
-            elif direccion == "atras":
-                celdas = [
-                    (z, y, x), (z + 1, y, x), (z + 2, y, x),
-                    (z + 3, y, x), (z + 4, y, x)
-                ]
-            else:
-                celdas = [
-                    (z, y, x), (z - 1, y, x), (z - 2, y, x),
-                    (z - 3, y, x), (z - 4, y, x)
-                ]
-
-        mitad_superior = True
-
-        for z_celda, y_celda, x_celda in celdas:
-            if z_celda < 0 or z_celda >= mitad:
-                mitad_superior = False
-
-        if mitad_superior and posicion_valida(cubo, celdas):
-            for z_celda, y_celda, x_celda in celdas:
-                cubo[z_celda][y_celda][x_celda] = "?"
-            return cubo
-
-        print("Error: la posición no es válida.")
-        print("Verifica los límites, la mitad superior de Z y la separación entre naves.")
+    # Si varía en el eje Y (altura)
+    if a == z and b == x:
+        if max(c, y) - min(c, y) !=4:
+            print("La nave debe ocupar 5 espacios")
+            return False,portaaviones
+        for k in range(min(c, y), max(c, y) + 1):
+            if cubo[a][k][b] == "?":
+                print("Ya hay otra nave ocupando esa posición.")
+                return False,portaaviones
+        for k in range(min(c, y), max(c, y) + 1):
+            cubo[a][k][b] = "?"
+            portaaviones.append((a+1,b+1,k+1))
+        print("Portaaviones colocado")
+            
+    return cubo,portaaviones
 
 ###############################################################################################
-
-def colocar_estacion(cubo):
-    """
-    Recibe el cubo y solicita la posición de la estación espacial.
-    Devuelve el cubo con la estación ubicada.
-    La estación ocupa 8 celdas y no puede tocar los bordes.
-    """
-
-    n = len(cubo)
-
-    while True:
-        print("Selecciona la posición de la estación espacial (2x2x2).")
-
-        x = input("Elije la coordenada X: ")
-        while not x.isdigit() or int(x) < 2 or int(x) > n - 2:
-            print("Error: la nave no puede ocupar los bordes del cubo.")
-            x = input("Elije X entre 2 y " + str(n - 2) + ": ")
-        x = int(x) - 1
-
-        y = input("Elije la coordenada Y: ")
-        while not y.isdigit() or int(y) < 2 or int(y) > n - 2:
-            print("Error: la nave no puede ocupar los bordes del cubo.")
-            y = input("Elije Y entre 2 y " + str(n - 2) + ": ")
-        y = int(y) - 1
-
-        z = input("Elije la coordenada Z: ")
-        while not z.isdigit() or int(z) < 2 or int(z) > n - 2:
-            print("Error: la nave no puede ocupar los bordes del cubo.")
-            z = input("Elije Z entre 2 y " + str(n - 2) + ": ")
-        z = int(z) - 1
-
-        celdas = [
-            (z, y, x),
-            (z + 1, y, x),
-            (z, y, x + 1),
-            (z + 1, y, x + 1),
-            (z, y + 1, x),
-            (z + 1, y + 1, x),
-            (z, y + 1, x + 1),
-            (z + 1, y + 1, x + 1)
-        ]
-
-        if posicion_valida(cubo, celdas):
-            for z_celda, y_celda, x_celda in celdas:
-                cubo[z_celda][y_celda][x_celda] = "?"
-            return cubo
-
-        print("Error: la estación ocupa una posición no válida.")
-        print("Puede estar ocupada o tocar otra nave.")
-        print("Intenta ubicarla nuevamente.")
+def colocar_estacion(cubo, estacion, tupla_inicio, tupla_final): #4x1 y Z!=1 y Z!=len(cubo)
+    a=tupla_inicio[0]-1
+    b=tupla_inicio[1]-1
+    c=tupla_inicio[2]-1
+    estacion=[]
+    z=tupla_final[0]-1
+    x=tupla_final[1]-1
+    y=tupla_final[2]-1
+    if a==0 or a>=len(cubo) or b==0 or b>=len(cubo) or c==0 or c>=len(cubo) or z==0 or z>=len(cubo) or x==0 or x>=len(cubo) or y==0 or y>=len(cubo):
+        print("La estacion no puede colocarse en los bordes del cubo")
+        return False,estacion
+    #Comprueba que la estacion no se encuentre tocando ningun borde del cubo.
+    
+    if a==z or b==x or c==y:
+        print("Las celdas no deben son continuas para la estacion")
+        return False,estacion
+    #Verifica que las celdas NO esten en linea.
+    else:
+        if max(a, z) - min(a, z)!=1 or max(b,x) - min(b, x)!=1 or max(c, y) - min(c, y) !=1:
+            raise ValueError("La nave debe ocupar un espacio de 2x2x2")
+        elif cubo[a][b][c]=="?" or cubo[a][b][c+1]=="?" or cubo[a][b+1][c]=="?" or cubo[a][b+1][c+1]=="?" or cubo[a+1][b][c]=="?" or cubo[a+1][b][c+1]=="?" or cubo[a+1][b+1][c]=="?" or cubo[a+1][b+1][c+1]=="?":
+            print("Ya hay otra nave ocupando esa posición.")
+            return False,estacion
+        #Verifica que ningun punto del cubo este ocupado al verificar sus 8 celdas.
+        else:
+            for i in range(min(a,z), max(a,z)+1):
+                for j in range(min(c,y), max(c,y)+1):
+                    for k in range(min(b,x), max(b,x)+1):
+                        cubo[i][j][k] = "?"
+                        estacion.append((i+1,k+1,j+1))
+            print("Estación colocada")
+    return cubo,estacion
 
 #La siguiente función utiliza la lista "celdas" utilizada en la sección de Armamento
 #Dicha lista esta formasda por tuplas que contienen las coordenadas de las celdas afectadas por las diferentes armas.
 #La siguiente funcion recorre dicha lusta comparando las coordenadas del blanco con las ocupadas.
 
 def verificar_impactos(cubo, celdas):
+    punto = celdas[i]
+    z = punto[0]
+    y = punto[1]
+    x = punto[2]
     for i in range(len(celdas)):
-        punto = celdas[i]
-        z = punto[0]
-        y = punto[1]
-        x = punto[2]
-
-        if z < 0 or z >= len(cubo) or \
-           y < 0 or y >= len(cubo) or \
-           x < 0 or x >= len(cubo):
-            continue
-
-        if cubo[z][y][x] == "?":
-            cubo[z][y][x] = "I"
+        if celdas[i] in fragata:
             print("Impacto")
+            cubo[z][y][x]=X
+            if fragata[0]==X and fragata [1]==X:
+                print("Fragata hundida")
+                cubo[fragata[0][0]][fragata[0][1]][fragata[0][2]]="#" #Reemplazo todas las celdas
+                cubo[fragata[1][0]][fragata[1][1]][fragata[1][2]]="#"  #de la nave por # (hundido)
+                flota.remove(fragata)
+            
+        if celdas[i] in destructor:
+            print("Impacto")
+            cubo[z][y][x]=X
+            if destructor[0]==X and destructor[1]==X and destructor[2]==X:
+                print("Destructor hundido")
+                cubo[destructor[0][0]][destructor[0][1]][destructor[0][2]]="#"
+                cubo[destructor[1][0]][destructor[1][1]][destructor[1][2]]="#"
+                cubo[destructor[2][0]][destructor[2][1]][destructor[2][2]]="#"
+                flota.remove(destructor)
+            
+        if celdas[i] in submarino:
+            print("Impacto")
+            cubo[z][y][x]=X
+            if submarino[0]==X and submarino[1]==X  and submarino[2]==X:
+                print("Submarino hundido")
+                cubo[submarino[0][0]][submarino[0][1]][submarino[0][2]]="#"
+                cubo[submarino[1][0]][submarino[1][1]][submarino[1][2]]="#"
+                cubo[submarino[2][0]][submarino[2][1]][submarino[2][2]]="#"
+                flota.remove(submarino)
+            
+        if celdas[i] in crucero:
+            print("Impacto")
+            cubo[z][y][x]=X
+            if crucero[0]==X and crucero[1]==X and crucero[2]==X and crucero[3]==X:
+                print("Crucero hundido")
+                cubo[crucero[0][0]][crucero[0][1]][crucero[0][2]]="#"
+                cubo[crucero[1][0]][crucero[1][1]][crucero[1][2]]="#"
+                cubo[crucero[2][0]][crucero[2][1]][crucero[2][2]]="#"
+                cubo[crucero[3][0]][crucero[3][1]][crucero[3][2]]="#"
+                flota.remove(crucero)
+        
+        if celdas[i] in portaaviones:
+            print("Impacto")
+            if cubo[z][y][x]=="X":
+                cubo[z][y][x]="x"
+            if portaaviones[0]==x and portaaviones[1]==x and portaaviones[2]==x and portaaviones[3]==x and portaaviones[4]==x:
+                print("Portaaviones hundido")
+                cubo[portaaviones[0][0]][portaaviones[0][1]][portaaviones[0][2]]="#"
+                cubo[portaaviones[1][0]][portaaviones[1][1]][portaaviones[1][2]]="#"
+                cubo[portaaviones[2][0]][portaaviones[2][1]][portaaviones[2][2]]="#"
+                cubo[portaaviones[3][0]][portaaviones[3][1]][portaaviones[3][2]]="#"
+                cubo[portaaviones[4][0]][portaaviones[4][1]][portaaviones[4][2]]="#"
+                flota.remove(portaaviones)
+                
+        if celdas[i] in estacion:
+            print("Impacto")
+            cubo[z][y][x]=X
+            if estacion[0]==X and estacion[1]==X and estacion[2]==X and estacion[3]==X and estacion[4]==X and estacion[5]==X and estacion[6]==X and estacion[7]==X:
+                print("Estacion hundida")
+                cubo[estacion[0][0]][estacion[0][1]][estacion[0][2]]="#"
+                cubo[estacion[1][0]][estacion[1][1]][estacion[1][2]]="#"
+                cubo[estacion[2][0]][estacion[2][1]][estacion[2][2]]="#"
+                cubo[estacion[3][0]][estacion[3][1]][estacion[3][2]]="#"
+                cubo[estacion[4][0]][estacion[4][1]][estacion[4][2]]="#"
+                cubo[estacion[5][0]][estacion[5][1]][estacion[5][2]]="#"
+                cubo[estacion[6][0]][estacion[6][1]][estacion[6][2]]="#"
+                cubo[estacion[7][0]][estacion[7][1]][estacion[7][2]]="#"
+                flota.remove(estacion)
+        
 
         elif cubo[z][y][x] == "~":
-            cubo[z][y][x] = "A"
+            cubo[z][y][x] = "o"
             print("Agua")
 
         else:
@@ -606,6 +434,157 @@ def verificar_impactos(cubo, celdas):
 #"abajo" and cubo[z][y+1][x] == "?")
 
 ###############################################################################################
+
+def ubicacion_manual(cubo, catalogo, semilla=None):
+    flota_1= []
+    #Coloco Fragata
+    print("Colocando Fragata (2x1)")
+    fragata=[]
+    colocada=False
+    valido1= False
+    valido2= False
+    while colocada== False:
+        coordenada1=input("Ingresá 3 dígitos separados por espacios de la coordenada 'DESDE': ")
+        tupla_inicio = tuple(int(x) for x in coordenada1.split())
+        valido1=armamento._validar_punto(tupla_inicio, cubo)
+        
+        coordenada2=input("Ingresá 3 dígitos separados por espacios de la coordenada 'HASTA': ")
+        tupla_final = tuple(int(x) for x in coordenada2.split())
+        valido2=armamento._validar_punto(tupla_final, cubo)
+
+        if valido1 == False or valido2 == False:
+            print("Coordenadas inválidas. Deben ser enteros entre 1 y " + str(len(cubo)))
+        elif valido1 == True and valido2 == True:
+            resultado,fragata=colocar_fragata(cubo,fragata,tupla_inicio, tupla_final)
+            if resultado!= False:
+                colocada=True
+                cubo,fragata = resultado,fragata
+                flota_1.append(fragata)
+
+    
+    #Coloco Destructor
+    print("Colocando Destructor (3x1)")
+    destructor=[]
+    colocada=False
+    valido1= False
+    valido2= False
+    while colocada== False:
+        coordenada1=input("Ingresá 3 dígitos separados por espacios de la coordenada 'DESDE': ")
+        tupla_inicio = tuple(int(x) for x in coordenada1.split())
+        valido1=armamento._validar_punto(tupla_inicio, cubo)
+        
+        coordenada2=input("Ingresá 3 dígitos separados por espacios de la coordenada 'HASTA': ")
+        tupla_final = tuple(int(x) for x in coordenada2.split())
+        valido2=armamento._validar_punto(tupla_final, cubo)
+
+        if valido1 == False or valido2 == False:
+            print("Coordenadas inválidas. Deben ser enteros entre 1 y " + str(len(cubo)))
+        elif valido1 == True and valido2 == True:
+            resultado,destructor=colocar_destructor(cubo,fragata,tupla_inicio, tupla_final)
+            if resultado!= False:
+                colocada=True
+                cubo,destructor = resultado,destructor
+                flota_1.append(destructor)
+
+    #Coloco Submarino
+    print("Colocando Submarino (3x1)")
+    submarino=[]
+    colocada=False
+    valido1= False
+    valido2= False
+    while colocada== False:
+        coordenada1=input("Ingresá 3 dígitos separados por espacios de la coordenada 'DESDE': ")
+        tupla_inicio = tuple(int(x) for x in coordenada1.split())
+        valido1=armamento._validar_punto(tupla_inicio, cubo)
+        
+        coordenada2=input("Ingresá 3 dígitos separados por espacios de la coordenada 'HASTA': ")
+        tupla_final = tuple(int(x) for x in coordenada2.split())
+        valido2=armamento._validar_punto(tupla_final, cubo)
+
+        if valido1 == False or valido2 == False:
+            print("Coordenadas inválidas. Deben ser enteros entre 1 y " + str(len(cubo)))
+        elif valido1 == True and valido2 == True:
+            resultado,submarino=colocar_submarino(cubo,fragata,tupla_inicio, tupla_final)
+            if resultado!= False:
+                colocada=True
+                cubo,submarino = resultado,submarino
+                flota_1.append(submarino)
+
+    #Coloco Crucero
+    print("Colocando Crucero (4x1)")
+    crucero=[]
+    colocada=False
+    valido1= False
+    valido2= False
+    while colocada== False:
+        coordenada1=input("Ingresá 3 dígitos separados por espacios de la coordenada 'DESDE': ")
+        tupla_inicio = tuple(int(x) for x in coordenada1.split())
+        valido1=armamento._validar_punto(tupla_inicio, cubo)
+        
+        coordenada2=input("Ingresá 3 dígitos separados por espacios de la coordenada 'HASTA': ")
+        tupla_final = tuple(int(x) for x in coordenada2.split())
+        valido2=armamento._validar_punto(tupla_final, cubo)
+
+        if valido1 == False or valido2 == False:
+            print("Coordenadas inválidas. Deben ser enteros entre 1 y " + str(len(cubo)))
+        elif valido1 == True and valido2 == True:
+            resultado,crucero=colocar_crucero(cubo,fragata,tupla_inicio, tupla_final)
+            if resultado!= False:
+                colocada=True
+                cubo,crucero = resultado,crucero
+                flota_1.append(crucero)
+
+    #Coloco Portaaviones
+    print("Colocando Portaaviones (5x1)")
+    portaaviones=[]
+    colocada=False
+    valido1= False
+    valido2= False
+    while colocada== False:
+        coordenada1=input("Ingresá 3 dígitos separados por espacios de la coordenada 'DESDE': ")
+        tupla_inicio = tuple(int(x) for x in coordenada1.split())
+        valido1=armamento._validar_punto(tupla_inicio, cubo)
+        
+        coordenada2=input("Ingresá 3 dígitos separados por espacios de la coordenada 'HASTA': ")
+        tupla_final = tuple(int(x) for x in coordenada2.split())
+        valido2=armamento._validar_punto(tupla_final, cubo)
+
+        if valido1 == False or valido2 == False:
+            print("Coordenadas inválidas. Deben ser enteros entre 1 y " + str(len(cubo)))
+        elif valido1 == True and valido2 == True:
+            resultado,portaaviones=colocar_portaaviones(cubo,fragata,tupla_inicio, tupla_final)
+            if resultado!= False:
+                colocada=True
+                cubo,portaaviones = resultado,portaaviones
+                flota_1.append(portaaviones)
+
+    #Coloco Estacion
+    print("Colocando Estacion (2x2x2)")
+    estacion=[]
+    colocada=False
+    valido1= False
+    valido2= False
+    while colocada== False:
+        coordenada1=input("Ingresá 3 dígitos separados por espacios de la coordenada 'DESDE': ")
+        tupla_inicio = tuple(int(x) for x in coordenada1.split())
+        valido1=armamento._validar_punto(tupla_inicio, cubo)
+        
+        coordenada2=input("Ingresá 3 dígitos separados por espacios de la coordenada 'HASTA': ")
+        tupla_final = tuple(int(x) for x in coordenada2.split())
+        valido2=armamento._validar_punto(tupla_final, cubo)
+
+        if valido1 == False or valido2 == False:
+            print("Coordenadas inválidas. Deben ser enteros entre 1 y " + str(len(cubo)))
+        elif valido1 == True and valido2 == True:
+            resultado,estacion=colocar_estacion(cubo,fragata,tupla_inicio, tupla_final)
+            if resultado!= False:
+                colocada=True
+                cubo,estacion = resultado,estacion
+                flota_1.append(estacion)
+    return cubo, flota_1
+
+
+
 
 def ubicacion_automatica(cubo, catalogo, semilla=None):
     """
