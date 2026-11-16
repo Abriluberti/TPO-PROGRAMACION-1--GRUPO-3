@@ -581,8 +581,7 @@ def ubicacion_manual(cubo, catalogo, semilla=None):
                 colocada=True
                 cubo,estacion = resultado,estacion
                 flota_1.append(estacion)
-
-    print(flota_1)
+    return cubo, flota_1
 
 
 
