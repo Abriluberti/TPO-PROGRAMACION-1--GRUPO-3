@@ -1,22 +1,8 @@
-"""Funciones para calcular las celdas afectadas por las armas
-y administrar la munición del juego Operación Cubo.
-"""
+"""Armas, celdas afectadas y administración de munición de Operación Cubo."""
 
 
-
-def _validar_punto(punto, cubo):
-    """Valida un punto con coordenadas (z, x, y).
-
-    Recibe:
-        punto: tupla o lista con tres coordenadas.
-        n: tamaño del cubo.
-
-    Devuelve:
-        True si el punto es válido; False en caso contrario.
-
-    Excepciones:
-        No lanza excepciones intencionalmente.
-    """
+def _validar_punto(punto, n):
+    """Valida una coordenada (z, x, y) dentro del cubo."""
     if not isinstance(punto, (tuple, list)) or len(punto) != 3:
         return False
 
@@ -29,80 +15,43 @@ def _validar_punto(punto, cubo):
 
     return True
 
-def torpedo(cubo, punto, eje=None):
-    """Calcula la celda afectada por un torpedo.
-    Recibe:
-        cubo: cubo de juego.
-        punto: coordenadas (z, x, y).
-        eje: parámetro opcional que no se utiliza.
-    Devuelve:
-        Un conjunto con el punto indicado, o un conjunto vacío
-        si el punto no es válido.
-    Excepciones:
-        No lanza excepciones intencionalmente.
-    """
+
+def _vecinos(punto):
+    """Devuelve los seis vecinos ortogonales de una celda."""
+    z, x, y = punto
+    return (
+        (z + 1, x, y), (z - 1, x, y),
+        (z, x + 1, y), (z, x - 1, y),
+        (z, x, y + 1), (z, x, y - 1)
+    )
+
+
+def torpedo(cubo, punto, eje=None, flota=None):
+    """Devuelve solamente la celda apuntada."""
     if not _validar_punto(punto, len(cubo)):
         return set()
-
-    celdas = set()
-    celdas.add(punto)
-
-    return celdas
+    return {tuple(punto)}
 
 
-def racimo(cubo, punto, eje=None):
-    """Calcula las celdas afectadas por un misil de racimo.
-    Recibe:
-        cubo: cubo de juego.
-        punto: coordenadas (z, x, y).
-        eje: parámetro opcional que no se utiliza.
-    Devuelve:
-        Un conjunto con el punto indicado y sus seis vecinos
-        ortogonales que estén dentro del cubo. Si el punto no
-        es válido, devuelve un conjunto vacío.
-    Excepciones:
-        No lanza excepciones intencionalmente.
-    """
+def racimo(cubo, punto, eje=None, flota=None):
+    """Devuelve el punto apuntado y sus seis vecinos válidos."""
     n = len(cubo)
-
     if not _validar_punto(punto, n):
         return set()
 
-    z, x, y = punto
-    celdas = set()
-    celdas.add(punto)
+    punto = tuple(punto)
+    celdas = {punto}
 
-    vecinos = (
-        (z + 1, x, y),
-        (z - 1, x, y),
-        (z, x + 1, y),
-        (z, x - 1, y),
-        (z, x, y + 1),
-        (z, x, y - 1)
-    )
-
-    for vecino in vecinos:
+    for vecino in _vecinos(punto):
         if _validar_punto(vecino, n):
             celdas.add(vecino)
 
     return celdas
 
 
-def carga_profundidad(cubo, punto, eje=None):
-    """Calcula las celdas de la recta del eje z.
-    Recibe:
-        cubo: cubo de juego.
-        punto: coordenadas (z, x, y).
-        eje: parámetro opcional que no se utiliza.
-    Devuelve:
-        Un conjunto con todas las celdas que comparten las
-        coordenadas x e y del punto. Si el punto no es válido,
-        devuelve un conjunto vacío.
-    Excepciones:
-        No lanza excepciones intencionalmente.
-    """
+def carga_profundidad(cubo, punto, eje=None, flota=None):
+    """Devuelve la recta completa del eje z que pasa por el punto."""
     n = len(cubo)
-
     if not _validar_punto(punto, n):
         return set()
 
@@ -115,21 +64,9 @@ def carga_profundidad(cubo, punto, eje=None):
     return celdas
 
 
-def barrido_laser(cubo, punto, eje=None):
-    """Calcula las celdas de una recta sobre el eje x o y.
-    Recibe:
-        cubo: cubo de juego.
-        punto: coordenadas (z, x, y).
-        eje: eje de recorrido, 'x' o 'y'.
-    Devuelve:
-        Un conjunto con todas las celdas de la recta elegida.
-        Si el punto o el eje no son válidos, devuelve un
-        conjunto vacío.
-    Excepciones:
-        No lanza excepciones intencionalmente.
-    """
+def barrido_laser(cubo, punto, eje=None, flota=None):
+    """Devuelve una recta completa sobre x o sobre y."""
     n = len(cubo)
-
     if not _validar_punto(punto, n):
         return set()
 
@@ -148,121 +85,158 @@ def barrido_laser(cubo, punto, eje=None):
     return celdas
 
 
+# La consigna pide radio decreciente, pero no fija el radio inicial.
+# Se adopta 2 como criterio inicial del grupo y queda centralizado aquí.
+RADIO_ONDA = 2
+
+
+def _propagar_onda(cubo, frontera, radio, visitadas):
+    """Expande una frontera de celdas y continúa con radio decreciente."""
+    if radio < 0 or not frontera:
+        return visitadas
+
+    for punto in frontera:
+        visitadas.add(punto)
+
+    if radio == 0:
+        return visitadas
+
+    nueva_frontera = set()
+
+    for punto in frontera:
+        for vecino in _vecinos(punto):
+            if _validar_punto(vecino, len(cubo)):
+                if vecino not in visitadas:
+                    nueva_frontera.add(vecino)
+
+    return _propagar_onda(
+        cubo, nueva_frontera, radio - 1, visitadas
+    )
+
+
+def onda_expansiva(cubo, punto, eje=None, flota=None, radio=RADIO_ONDA):
+    """Calcula recursivamente las celdas alcanzadas por la onda expansiva."""
+    if not _validar_punto(punto, len(cubo)):
+        return set()
+
+    if not isinstance(radio, int) or isinstance(radio, bool) or radio < 0:
+        return set()
+
+    return _propagar_onda(
+        cubo, {tuple(punto)}, radio, set()
+    )
+
+
+def _buscar_celda_contigua(nave, punto, visitadas):
+    """Busca recursivamente una celda no impactada de la misma nave."""
+    celdas_nave = {tuple(celda) for celda in nave.get("celdas", [])}
+    impactos = {tuple(celda) for celda in nave.get("impactos", set())}
+
+    if punto in visitadas:
+        return None
+
+    visitadas.add(punto)
+
+    for vecino in _vecinos(punto):
+        if vecino in celdas_nave:
+            if vecino not in impactos:
+                return vecino
+
+            encontrada = _buscar_celda_contigua(
+                nave, vecino, visitadas
+            )
+            if encontrada is not None:
+                return encontrada
+
+    return None
+
+
+def torpedo_guiado(cubo, punto, eje=None, flota=None):
+    """Busca una celda contigua a un impacto previo de una nave no hundida."""
+    if flota is None or not _validar_punto(punto, len(cubo)):
+        return set()
+
+    punto = tuple(punto)
+
+    for nave in flota:
+        if nave.get("hundida", False):
+            continue
+
+        impactos = {
+            tuple(celda) for celda in nave.get("impactos", set())
+        }
+
+        if punto in impactos:
+            encontrada = _buscar_celda_contigua(
+                nave, punto, set()
+            )
+            if encontrada is not None:
+                return {encontrada}
+
+    return set()
+
+
 CATALOGO = {
     "T": None,
     "R": 3,
     "C": 2,
-    "L": 2
+    "S": 4,
+    "L": 2,
+    "O": 1,
+    "G": 1
 }
 
 
+# El sonar S se procesa en radar.py porque no produce daño.
 ARMAS = {
     "T": torpedo,
     "R": racimo,
     "C": carga_profundidad,
-    "L": barrido_laser
+    "L": barrido_laser,
+    "O": onda_expansiva,
+    "G": torpedo_guiado
 }
 
 
 def municion_inicial():
-    """Crea el inventario inicial de munición.
-    Recibe:
-        Ningún parámetro.
-    Devuelve:
-        Un diccionario con la munición inicial de cada arma.
-        None representa munición ilimitada.
-    Excepciones:
-        No lanza excepciones intencionalmente.
-    """
+    """Devuelve un diccionario con la munición inicial de todas las armas."""
     municion = {}
-
     for letra in CATALOGO:
         municion[letra] = CATALOGO[letra]
-
     return municion
 
 
 def tiene_municion(letra, municion):
-    """Comprueba si queda munición para un arma.
-    Recibe:
-        letra: letra que identifica el arma.
-        municion: diccionario con las cantidades disponibles.
-    Devuelve:
-        True si el arma tiene munición disponible o ilimitada;
-        False si la letra no existe o la munición se agotó.
-    Excepciones:
-        No lanza excepciones intencionalmente.
-    """
+    """Indica si existe munición disponible o ilimitada para el arma."""
     if letra not in municion:
         return False
-
     if municion[letra] is None:
         return True
-
     return municion[letra] > 0
 
 
 def gastar_municion(letra, municion):
-    """Descuenta una unidad de munición cuando corresponde.
-    Recibe:
-        letra: letra que identifica el arma.
-        municion: diccionario con las cantidades disponibles.
-    Devuelve:
-        El mismo diccionario, actualizado si había munición
-        finita disponible. La munición ilimitada no se descuenta.
-    Excepciones:
-        No lanza excepciones intencionalmente.
-    """
+    """Descuenta una unidad de munición finita y devuelve el inventario."""
     if tiene_municion(letra, municion):
         if municion[letra] is not None:
-            municion[letra] = municion[letra] - 1
-
+            municion[letra] -= 1
     return municion
 
 
-
-def disparar(letra, cubo, punto, eje=None):
-    """Calcula las celdas afectadas por el arma seleccionada.
-
-    Recibe:
-        letra: letra que identifica el arma.
-        cubo: cubo de juego.
-        punto: coordenadas (z, x, y).
-        eje: eje opcional para el barrido láser.
-
-    Devuelve:
-        Conjunto de celdas afectadas o un conjunto vacío
-        si el arma o el punto no son válidos.
-
-    Excepciones:
-        No lanza excepciones intencionalmente.
-    """
+def disparar(letra, cubo, punto, eje=None, flota=None):
+    """Despacha el arma y devuelve las celdas afectadas."""
     if letra not in ARMAS:
         return set()
-
     if not _validar_punto(punto, len(cubo)):
         return set()
 
     funcion = ARMAS[letra]
-    return funcion(cubo, punto, eje)
+    return funcion(cubo, punto, eje, flota)
 
 
-def aplicar_disparo(letra, cubo, punto, ocupadas, municion, eje=None):
-    """Calcula los impactos y el agua de un disparo válido.
-    Recibe:
-        letra: letra que identifica el arma.
-        cubo: cubo de juego.
-        punto: coordenadas (z, x, y).
-        ocupadas: conjunto de celdas ocupadas por naves.
-        municion: diccionario con la munición disponible.
-        eje: eje opcional para el barrido láser.
-    Devuelve:
-        Un diccionario con los conjuntos 'celdas', 'impactos'
-        y 'agua'. Si el disparo es inválido o no hay munición,
-        los tres conjuntos están vacíos.
-    Excepciones:
-        No lanza excepciones intencionalmente.
-    """
+def aplicar_disparo(letra, cubo, punto, ocupadas, municion,
+                    eje=None, flota=None, disparos_previos=None):
+    """Devuelve celdas, impactos y agua; descuenta munición si dispara."""
     vacio = {
         "celdas": set(),
         "impactos": set(),
@@ -272,7 +246,10 @@ def aplicar_disparo(letra, cubo, punto, ocupadas, municion, eje=None):
     if not tiene_municion(letra, municion):
         return vacio
 
-    celdas = disparar(letra, cubo, punto, eje)
+    celdas = disparar(letra, cubo, punto, eje, flota)
+
+    if disparos_previos is not None:
+        celdas = celdas - disparos_previos
 
     if not celdas:
         return vacio
@@ -287,3 +264,4 @@ def aplicar_disparo(letra, cubo, punto, ocupadas, municion, eje=None):
         "impactos": impactos,
         "agua": agua
     }
+
