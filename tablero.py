@@ -1,3 +1,36 @@
+"""
+Clase encargada de crear y manipular el tablero tridimensional.
+
+Los puntos se representan mediante coordenadas (z, x, y),
+con valores desde 1 hasta N.
+
+El cubo se almacena internamente como:
+cubo[z - 1][y - 1][x - 1].
+"""
+
+
+# Estados de las celdas
+AGUA_SIN_EXPLORAR = "~"
+NAVE_OCULTA = "?"
+AGUA_MARCADA = "A"
+IMPACTO = "X"
+HUNDIDO = "#"
+DETECTADO_SONAR = "D"
+
+
+# Excepciones propias
+class ErrorTablero(Exception):
+    """Error general del tablero."""
+
+
+class PuntoInvalidoError(ErrorTablero):
+    """Se lanza cuando un punto no pertenece al cubo."""
+
+
+class DimensionesError(ErrorTablero):
+    """Se lanza cuando las dimensiones de matrices no son compatibles."""
+
+
 def crear_cubo(n=8):
     """Crea un cubo vacío de N×N×N celdas
 
@@ -8,14 +41,18 @@ def crear_cubo(n=8):
        cubo como lista de listas de listas, celdas inicializadas con "~"
 
     Excepciones:
-        Ninguna"""
+            ErrorTablero: si el tamaño es menor que 1."""
+
+    if n < 1:
+        raise ErrorTablero("El tamaño debe ser un entero mayor o igual a 1.")
+
     cubo = []
     for z in range(n):
         capa = []
         for y in range(n):
             fila = []
             for x in range(n):
-                fila.append("~")
+                fila.append(AGUA_SIN_EXPLORAR)
             capa.append(fila)
         cubo.append(capa)
     return cubo
@@ -52,7 +89,11 @@ def dibujar_plano_z(cubo, z):
         representación en texto del plano
 
     Excepciones:
-        Ninguna"""
+            PuntoInvalidoError: si la coordenada no pertenece al cubo."""
+
+    if z < 1 or z > len(cubo):
+        raise PuntoInvalidoError("La capa Z no pertenece al cubo.")
+
     plano = cubo[z - 1]
     dibujo = f"========= CAPA z = {z} =========\n"
     dibujo += "    "
@@ -78,7 +119,14 @@ def sumar_matrices(a, b):
       matriz resultado de a + b
 
     Excepciones:
-        Ninguna"""
+        DimensionesError: si las matrices tienen distinto tamaño."""
+    if len(a) != len(b):
+        raise DimensionesError("Las matrices deben tener el mismo tamaño.")
+
+    for i in range(len(a)):
+        if len(a[i]) != len(b[i]):
+            raise DimensionesError("Las matrices deben tener el mismo tamaño.")
+
     resultado = []
     for i in range(len(a)):
         fila = []
@@ -99,7 +147,15 @@ def restar_matrices(a, b):
         list: matriz resultado de a - b
 
     Excepciones:
-        Ninguna"""
+        DimensionesError: si las matrices tienen distinto tamaño."""
+
+    if len(a) != len(b):
+        raise DimensionesError("Las matrices deben tener el mismo tamaño.")
+
+    for i in range(len(a)):
+        if len(a[i]) != len(b[i]):
+            raise DimensionesError("Las matrices deben tener el mismo tamaño.")
+
     resultado = []
     for i in range(len(a)):
         fila = []
@@ -120,11 +176,18 @@ def multiplicar_matrices(a, b):
         list: matriz resultado de m×p
 
     Excepciones:
-        Ninguna"""
+       DimensionesError: si las matrices están vacías o no son compatibles."""
+
+    if len(a) == 0 or len(b) == 0:
+        raise DimensionesError("Las matrices no pueden estar vacías.")
+
     filas_a = len(a)
     columnas_a = len(a[0])
     columnas_b = len(b[0])
     resultado = []
+    if columnas_a != len(b):
+        raise DimensionesError("Las matrices no tienen dimensiones compatibles.")
+
     for i in range(filas_a):
         fila = []
         for j in range(columnas_b):
@@ -146,7 +209,12 @@ def transponer_matriz(matriz):
         list: matriz transpuesta
 
     Excepciones:
-        Ninguna"""
+        DimensionesError: si la matriz está vacía.
+    """
+
+    if len(matriz) == 0:
+        raise DimensionesError("La matriz no puede estar vacía.")
+
     resultado = []
     for j in range(len(matriz[0])):
         fila = []
@@ -165,7 +233,10 @@ def dibujar_plano_x(cubo, x):
     Devuelve:
       representación del plano
     Excepciones:
-        Ninguna"""
+      PuntoInvalidoError: si la coordenada no pertenece al cubo."""
+
+    if x < 1 or x > len(cubo[0][0]):
+        raise PuntoInvalidoError("El plano X no pertenece al cubo.")
 
     dibujo = f"========= PLANO x = {x} =========\n"
 
@@ -192,7 +263,11 @@ def dibujar_plano_y(cubo, y):
     Devuelve:
         representación del plano
       Excepciones:
-        Ninguna"""
+        PuntoInvalidoError: si la coordenada no pertenece al cubo."""
+
+    if y < 1 or y > len(cubo[0]):
+        raise PuntoInvalidoError("El plano Y no pertenece al cubo.")
+
     dibujo = f"========= PLANO y = {y} =========\n"
 
     dibujo += "    "
@@ -217,11 +292,15 @@ def obtener_vecinos(cubo, punto):
         lista de coordenadas vecinas válidas
 
     Excepciones:
-        Ninguna
+        PuntoInvalidoError: si el punto no pertenece al cubo.
     """
+    n = len(cubo)
+
+    if not punto_valido(punto, n):
+        raise PuntoInvalidoError("El punto no pertenece al cubo.")
+
     z, x, y = punto
     vecinos = []
-    n = len(cubo)
 
     puntos = [
         (z - 1, x, y),
@@ -248,7 +327,7 @@ def recorrer_por_capas(cubo):
     Devuelve:
         list: puntos recorridos en orden (z, x, y).
 
-     Excepciones:
+    Excepciones:
         Ninguna"""
 
     recorrido = []
@@ -259,5 +338,45 @@ def recorrer_por_capas(cubo):
             for x in range(1, n + 1):
                 punto = (z, x, y)
                 recorrido.append(punto)
+
+    return recorrido
+
+def recorrer_por_columnas(cubo):
+    """
+    Recorre el cubo por columnas.
+
+    Recibe:
+        cubo: cubo tridimensional.
+
+    Devuelve:
+        Una lista de puntos ordenados por columna.
+    """
+    recorrido = []
+    n = len(cubo)
+
+    for x in range(1, n + 1):
+        for z in range(1, n + 1):
+            for y in range(1, n + 1):
+                recorrido.append((z, x, y))
+
+    return recorrido
+
+def recorrer_por_filas(cubo):
+    """
+    Recorre el cubo comenzando por las filas.
+
+    Recibe:
+        cubo: cubo tridimensional.
+
+    Devuelve:
+        list: puntos recorridos en orden (z, x, y).
+    """
+    recorrido = []
+    n = len(cubo)
+
+    for y in range(1, n + 1):
+        for z in range(1, n + 1):
+            for x in range(1, n + 1):
+                recorrido.append((z, x, y))
 
     return recorrido
