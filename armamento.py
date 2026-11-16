@@ -4,7 +4,7 @@ y administrar la munición del juego Operación Cubo.
 
 
 
-def _validar_punto(punto, n):
+def _validar_punto(punto, cubo):
     """Valida un punto con coordenadas (z, x, y).
 
     Recibe:
@@ -24,7 +24,7 @@ def _validar_punto(punto, n):
         if not isinstance(valor, int) or isinstance(valor, bool):
             return False
 
-        if valor < 1 or valor > n:
+        if valor < 1 or valor > len(cubo):
             return False
 
     return True
