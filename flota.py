@@ -587,146 +587,273 @@ def ubicacion_manual(cubo, catalogo, semilla=None):
 
 
 def ubicacion_automatica(cubo, catalogo, semilla=None):
-    """
-    Ubica automáticamente las naves en el cubo.
+    flota_2= []
+    #Coloco Fragata
+    print("Colocando Fragata (2x1)")
+    fragata=[]
+    colocada=False
+    valido1= False
+    valido2= False
+    while colocada== False:
+        lista_inicio=[]
+        coordenada1=random.randint(1,len(cubo))
+        lista_inicio.append(coordenada1)
+        coordenada2=random.randint(1,len(cubo))
+        lista_inicio.append(coordenada2)
+        coordenada3=random.randint(1,len(cubo))
+        lista_inicio.append(coordenada3)
+        tupla_inicio=tuple(lista_inicio)
 
-    Recibe:
-        cubo: cubo donde se ubican las naves.
-        catalogo: diccionario con los tipos y cantidades de naves.
-        semilla: número para repetir las mismas ubicaciones.
+        lista_final=[]
+        coordenada4=random.choice([coordenada1, coordenada1+1, coordenada1-1])
+        if coordenada4!=coordenada1:
+            coordenada5=coordenada2
+            coordenada6=coordenada3
+        if coordenada4==coordenada1:
+            coordenada5=random.choice([coordenada2, coordenada2+1, coordenada2-1])
+            if coordenada5!=coordenada2:
+                coordenada6=coordenada3
+            if coordenada5==coordenada2:
+                coordenada6=random.choice([coordenada3+1, coordenada3-1])
+        lista_final.append(coordenada4)
+        lista_final.append(coordenada5)
+        lista_final.append(coordenada6)
+        tupla_final=tuple(lista_final)
+        
+        valido1=armamento._validar_punto(tupla_inicio, cubo) 
+        valido2=armamento._validar_punto(tupla_final, cubo)
 
-    Devuelve:
-        Una lista con los datos de las naves ubicadas.
+        if valido1 == False or valido2 == False:
+            print("Coordenadas inválidas. Deben ser enteros entre 1 y " + str(len(cubo)))
+        elif valido1 == True and valido2 == True:
+            resultado,fragata=colocar_fragata(cubo,fragata,tupla_inicio, tupla_final)
+            if resultado!= False:
+                colocada=True
+                cubo,fragata = resultado,fragata
+                flota_2.append(fragata)
 
-    Excepciones:
-        RuntimeError si no se encuentra una posición válida.
-    """
+    
+    #Coloco Destructor
+    print("Colocando Destructor (3x1)")
+    destructor=[]
+    colocada=False
+    valido1= False
+    valido2= False
+    while colocada== False:
+        lista_inicio=[]
+        coordenada1=random.randint(1,len(cubo))
+        lista_inicio.append(coordenada1)
+        coordenada2=random.randint(1,len(cubo))
+        lista_inicio.append(coordenada2)
+        coordenada3=random.randint(1,len(cubo))
+        lista_inicio.append(coordenada3)
+        tupla_inicio=tuple(lista_inicio)
+    
+        lista_final=[]
+        coordenada4=random.choice([coordenada1, coordenada1+2, coordenada1-2])
+        if coordenada4!=coordenada1:
+            coordenada5=coordenada2
+            coordenada6=coordenada3
+        if coordenada4==coordenada1:
+            coordenada5=random.choice([coordenada2, coordenada2+2, coordenada2-2])
+            if coordenada5!=coordenada2:
+                coordenada6=coordenada3
+            if coordenada5==coordenada2:
+                coordenada6=random.choice([coordenada3+2, coordenada3-2])
+        lista_final.append(coordenada4)
+        lista_final.append(coordenada5)
+        lista_final.append(coordenada6)
+        tupla_final=tuple(lista_final)
 
-    generador = random.Random(semilla)
-    catalogo_ordenado = sorted(
-        catalogo.items(),
-        key=lambda elemento: elemento[1]["tamanio"],
-        reverse=True
-    )
-    n = len(cubo)
-    flota = []
+        valido1=armamento._validar_punto(tupla_inicio, cubo) 
+        valido2=armamento._validar_punto(tupla_final, cubo)
 
-    for nombre, datos in catalogo_ordenado:
-        tamanio = datos["tamanio"]
-        cantidad = datos["cantidad"]
+        if valido1 == False or valido2 == False:
+            print("Coordenadas inválidas. Deben ser enteros entre 1 y " + str(len(cubo)))
+        elif valido1 == True and valido2 == True:
+            resultado,destructor=colocar_destructor(cubo,fragata,tupla_inicio, tupla_final)
+            if resultado!= False:
+                colocada=True
+                cubo,destructor = resultado,destructor
+                flota_2.append(destructor)
 
-        for numero in range(cantidad):
-            ubicada = False
+    #Coloco Submarino
+    print("Colocando Submarino (3x1)")
+    submarino=[]
+    colocada=False
+    valido1= False
+    valido2= False
+    while colocada== False:
+        lista_inicio=[]
+        coordenada1=random.randint(1,len(cubo))
+        lista_inicio.append(coordenada1)
+        coordenada2=random.randint(1,len(cubo))
+        lista_inicio.append(coordenada2)
+        coordenada3=random.randint(int(len(cubo)/2),8)
+        lista_inicio.append(coordenada3)
+        tupla_inicio=tuple(lista_inicio)
+    
+        lista_final=[]
+        coordenada4=random.choice([coordenada1, coordenada1+2, coordenada1-2])
+        if coordenada4!=coordenada1:
+            coordenada5=coordenada2
+            coordenada6=coordenada3
+        if coordenada4==coordenada1:
+            coordenada5=random.choice([coordenada2, coordenada2+2, coordenada2-2])
+            if coordenada5!=coordenada2:
+                coordenada6=coordenada3
+            if coordenada5==coordenada2:
+                coordenada6=random.choice([coordenada3+2, coordenada3-2])
+        lista_final.append(coordenada4)
+        lista_final.append(coordenada5)
+        lista_final.append(coordenada6)
+        tupla_final=tuple(lista_final)
 
-            intentos = 0
+        valido1=armamento._validar_punto(tupla_inicio, cubo) 
+        valido2=armamento._validar_punto(tupla_final, cubo)
 
-            while not ubicada and intentos < 1000:
-                intentos += 1
+        if valido1 == False or valido2 == False:
+            print("Coordenadas inválidas. Deben ser enteros entre 1 y " + str(len(cubo)))
+        elif valido1 == True and valido2 == True:
+            resultado,submarino=colocar_submarino(cubo,fragata,tupla_inicio, tupla_final)
+            if resultado!= False:
+                colocada=True
+                cubo,submarino = resultado,submarino
+                flota_2.append(submarino)
 
-                if nombre == "Submarino":
-                    z = generador.randint(n // 2, n - 1)
-                elif nombre == "Portaaviones":
-                    z = generador.randint(0, n // 2 - 1)
-                elif nombre == "Crucero":
-                    z = generador.randint(1, n - 2)
-                elif nombre == "Estacion":
-                    z = generador.randint(1, n - 3)
-                else:
-                    z = generador.randint(0, n - 1)
+    #Coloco Crucero
+    print("Colocando Crucero (4x1)")
+    crucero=[]
+    colocada=False
+    valido1= False
+    valido2= False
+    while colocada== False:
+        lista_inicio=[]
+        coordenada1=random.randint(1,len(cubo))
+        lista_inicio.append(coordenada1)
+        coordenada2=random.randint(1,len(cubo))
+        lista_inicio.append(coordenada2)
+        coordenada3=random.randint(1,len(cubo))
+        lista_inicio.append(coordenada3)
+        tupla_inicio=tuple(lista_inicio)
+        
+        lista_final=[]
+        coordenada4=random.choice([coordenada1, coordenada1+3, coordenada1-3])
+        if coordenada4!=coordenada1:
+            coordenada5=coordenada2
+            coordenada6=coordenada3
+        if coordenada4==coordenada1:
+            coordenada5=random.choice([coordenada2, coordenada2+3, coordenada2-3])
+            if coordenada5!=coordenada2:
+                coordenada6=coordenada3
+            if coordenada5==coordenada2:
+                coordenada6=random.choice([coordenada3+3, coordenada3-3])
+        lista_final.append(coordenada4)
+        lista_final.append(coordenada5)
+        lista_final.append(coordenada6)
+        tupla_final=tuple(lista_final)
 
-                if nombre == "Estacion":
-                    y = generador.randint(1, n - 3)
-                    x = generador.randint(1, n - 3)
+        valido1=armamento._validar_punto(tupla_inicio, cubo) 
+        valido2=armamento._validar_punto(tupla_final, cubo)
 
-                    celdas = []
+        if valido1 == False or valido2 == False:
+            print("Coordenadas inválidas. Deben ser enteros entre 1 y " + str(len(cubo)))
+        elif valido1 == True and valido2 == True:
+            resultado,crucero=colocar_crucero(cubo,fragata,tupla_inicio, tupla_final)
+            if resultado!= False:
+                colocada=True
+                cubo,crucero = resultado,crucero
+                flota_2.append(crucero)
 
-                    for cambio_z in range(2):
-                        for cambio_y in range(2):
-                            for cambio_x in range(2):
-                                celdas.append((
-                                    z + cambio_z,
-                                    y + cambio_y,
-                                    x + cambio_x
-                                ))
+    #Coloco Portaaviones
+    print("Colocando Portaaviones (5x1)")
+    portaaviones=[]
+    colocada=False
+    valido1= False
+    valido2= False
+    while colocada== False:
+        lista_inicio=[]
+        coordenada1=random.randint(1,len(cubo))
+        lista_inicio.append(coordenada1)
+        coordenada2=random.randint(1,len(cubo))
+        lista_inicio.append(coordenada2)
+        coordenada3=random.randint(1,len(cubo))
+        lista_inicio.append(coordenada3)
+        tupla_inicio=tuple(lista_inicio)
+        
+        lista_final=[]
+        coordenada4=random.choice([coordenada1, coordenada1+4, coordenada1-4])
+        if coordenada4!=coordenada1:
+            coordenada5=coordenada2
+            coordenada6=coordenada3
+        if coordenada4==coordenada1:
+            coordenada5=random.choice([coordenada2, coordenada2+4, coordenada2-4])
+            if coordenada5!=coordenada2:
+                coordenada6=coordenada3
+            if coordenada5==coordenada2:
+                coordenada6=random.choice([coordenada3+4, coordenada3-4])
+        lista_final.append(coordenada4)
+        lista_final.append(coordenada5)
+        lista_final.append(coordenada6)
+        tupla_final=tuple(lista_final)
+        
+        valido1=armamento._validar_punto(tupla_inicio, cubo) 
+        valido2=armamento._validar_punto(tupla_final, cubo)
+        
+        if valido1 == False or valido2 == False:
+            print("Coordenadas inválidas. Deben ser enteros entre 1 y " + str(len(cubo)))
+        elif valido1 == True and valido2 == True:
+            resultado,portaaviones=colocar_portaaviones(cubo,fragata,tupla_inicio, tupla_final)
+            if resultado!= False:
+                colocada=True
+                cubo,portaaviones = resultado,portaaviones
+                flota_2.append(portaaviones)
 
-                else:
-                    y = generador.randint(0, n - 1)
-                    x = generador.randint(0, n - 1)
+    #Coloco Estacion
+    print("Colocando Estacion (2x2x2)")
+    estacion=[]
+    colocada=False
+    valido1= False
+    valido2= False
+    while colocada== False:
+        lista_inicio=[]
+        coordenada1=random.randint(2,len(cubo)-1)
+        lista_inicio.append(coordenada1)
+        coordenada2=random.randint(2,len(cubo)-1)
+        lista_inicio.append(coordenada2)
+        coordenada3=random.randint(2,len(cubo)-1)
+        lista_inicio.append(coordenada3)
+        tupla_inicio=tuple(lista_inicio)
+        
+        lista_final=[]
+        coordenada4=random.choice([coordenada1+1, coordenada1-1])
+        #if coordenada4==coordenada1+1:
+            #coordenada5=coordenada2
+            #coordenada6=coordenada3
+        #if coordenada4==coordenada1:
+        coordenada5=random.choice([coordenada2+1, coordenada2-1])
+            #if coordenada5!=coordenada2:
+                #coordenada6=coordenada3
+            #if coordenada5==coordenada2:
+        coordenada6=random.choice([coordenada3+1, coordenada3-1])
+        lista_final.append(coordenada4)
+        lista_final.append(coordenada5)
+        lista_final.append(coordenada6)
+        tupla_final=tuple(lista_final)
+        
+        valido1=armamento._validar_punto(tupla_inicio, cubo) 
+        valido2=armamento._validar_punto(tupla_final, cubo)
+        
+        if valido1 == False or valido2 == False:
+            print("Coordenadas inválidas. Deben ser enteros entre 1 y " + str(len(cubo)))
+        elif valido1 == True and valido2 == True:
+            resultado,estacion=colocar_estacion(cubo,fragata,tupla_inicio, tupla_final)
+            if resultado!= False:
+                colocada=True
+                cubo,estacion = resultado,estacion
+                flota_2.append(estacion)
+    return cubo, flota_2
 
-                    eje = generador.choice(["x", "y", "z"])
-                    direccion = generador.choice([-1, 1])
-
-                    celdas = []
-
-                    for i in range(tamanio):
-                        nueva_z = z
-                        nueva_y = y
-                        nueva_x = x
-
-                        if eje == "x":
-                            nueva_x = x + i * direccion
-                        elif eje == "y":
-                            nueva_y = y + i * direccion
-                        else:
-                            nueva_z = z + i * direccion
-
-                        celdas.append((
-                            nueva_z,
-                            nueva_y,
-                            nueva_x
-                        ))
-
-                reglas_validas = True
-
-                for z_celda, y_celda, x_celda in celdas:
-                    if nombre == "Submarino":
-                        if z_celda < n // 2:
-                            reglas_validas = False
-
-                    elif nombre == "Portaaviones":
-                        if z_celda >= n // 2:
-                            reglas_validas = False
-
-                    elif nombre == "Crucero":
-                        if z_celda == 0 or z_celda == n - 1:
-                            reglas_validas = False
-
-                    elif nombre == "Estacion":
-                        if (z_celda == 0 or z_celda == n - 1
-                                or y_celda == 0 or y_celda == n - 1
-                                or x_celda == 0 or x_celda == n - 1):
-                            reglas_validas = False
-
-                if reglas_validas and posicion_valida(cubo, celdas):
-                    for z_celda, y_celda, x_celda in celdas:
-                        cubo[z_celda][y_celda][x_celda] = "?"
-
-                    celdas_partida = []
-
-                    for z_celda, y_celda, x_celda in celdas:
-                        celdas_partida.append((
-                            z_celda + 1,
-                            x_celda + 1,
-                            y_celda + 1
-                        ))
-
-                    nave = {
-                        "nombre": nombre,
-                        "celdas": celdas_partida,
-                        "impactos": set(),
-                        "hundida": False,
-                        "resistencia": tamanio
-                    }
-
-                    flota.append(nave)
-                    ubicada = True
-
-            if not ubicada:
-                raise RuntimeError(
-                    "No se pudo ubicar la nave: " + nombre
-                )
-
-    return flota
 def posicion_valida(cubo, celdas):
     """
     Recibe el cubo y una lista de coordenadas de la nave.
