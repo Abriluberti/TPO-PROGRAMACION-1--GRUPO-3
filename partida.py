@@ -8,7 +8,7 @@ import flota
 
 
 PATRON_MENU_TURNO = r"^[1-3]$"
-PATRON_ARMA = r"^[TRCL]$"
+PATRON_ARMA = r"^[TRCLOG]$"
 PATRON_OBJETIVO = r"^(\d+),(\d+),(\d+)$"
 PATRON_EJE = r"^[zxy]$"
 
@@ -20,9 +20,9 @@ def pedir_arma():
     """
 
     while True:
-        arma = input("Arma (T/R/C/L): ").strip().upper()
+        arma = input("Arma (T/R/C/L/O/G): ").strip().upper()
 
-        if arma in armamento.ARMAS:
+        if re.match(PATRON_ARMA, arma) and arma in armamento.ARMAS:
             return arma
 
         print("Arma no válida. Elija una de las armas disponibles.")
@@ -93,11 +93,11 @@ def nueva_partida_1v1(configuracion):
     cubo_jugador_1 = tablero.crear_cubo(n_max)
     cubo_jugador_2 = tablero.crear_cubo(n_max)
 
-    flota_jugador_1 = flota.ubicacion_manual(
+    flota_jugador_1, cubo_jugador_1 = flota.ubicacion_manual(
         cubo_jugador_1, flota.CATALOGO_NAVES, 1
     )
 
-    flota_jugador_2 = flota.ubicacion_automatica(
+    flota_jugador_2, cubo_jugador_2 = flota.ubicacion_automatica(
         cubo_jugador_2, flota.CATALOGO_NAVES, 2
     )
 
@@ -277,7 +277,24 @@ def ejecutar_turno(estado, jugada):
     jugador = estado["jugadores"][actual]
     oponente = estado["jugadores"][rival]
 
-    if objetivo in jugador["disparos"]:
+    if arma == "G":
+        impacto_previo = False
+
+        for nave in oponente["flota"]:
+            if not nave.get("hundida", False):
+                impactos_nave = {
+                    tuple(punto) for punto in nave.get("impactos", set())
+                }
+
+                if objetivo in impactos_nave:
+                    impacto_previo = True
+                    break
+
+        if not impacto_previo:
+            print("El torpedo guiado necesita un impacto previo en una nave no hundida.")
+            return estado
+
+    elif objetivo in jugador["disparos"]:
         print("Ya disparaste a esa coordenada.")
         return estado
 
@@ -294,7 +311,9 @@ def ejecutar_turno(estado, jugada):
         objetivo,
         ocupadas,
         jugador["municion"],
-        eje
+        eje,
+        oponente["flota"],
+        jugador["disparos"]
     )
 
     if not resultado["celdas"]:
@@ -347,3 +366,5 @@ def ejecutar_turno(estado, jugada):
         estado["turno_actual"] = rival
 
     return estado
+
+
