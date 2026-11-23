@@ -10,7 +10,7 @@ def _validar_punto(punto, n):
         if not isinstance(valor, int) or isinstance(valor, bool):
             return False
 
-        if valor < 1 or valor > len(cubo):
+        if valor < 1 or valor > n:
             return False
 
     return True
@@ -264,4 +264,5 @@ def aplicar_disparo(letra, cubo, punto, ocupadas, municion,
         "impactos": impactos,
         "agua": agua
     }
+
 
