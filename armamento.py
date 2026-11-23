@@ -1,21 +1,6 @@
 """Armas, celdas afectadas y administración de munición de Operación Cubo."""
 
 
-def _validar_punto(punto, n):
-    """Valida una coordenada (z, x, y) dentro del cubo."""
-    if not isinstance(punto, (tuple, list)) or len(punto) != 3:
-        return False
-
-    for valor in punto:
-        if not isinstance(valor, int) or isinstance(valor, bool):
-            return False
-
-        if valor < 1 or valor > n:
-            return False
-
-    return True
-
-
 def _vecinos(punto):
     """Devuelve los seis vecinos ortogonales de una celda."""
     z, x, y = punto

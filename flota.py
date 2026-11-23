@@ -1,5 +1,7 @@
 import random
 import armamento
+import tablero
+
 
 def colocar_fragata(cubo,fragata, tupla_inicio, tupla_final): #2x1
     a=tupla_inicio[0]-1
@@ -444,13 +446,13 @@ def ubicacion_manual(cubo, catalogo, semilla=None):
     valido1= False
     valido2= False
     while colocada== False:
-        coordenada1=input("Ingresá 3 dígitos separados por espacios de la coordenada 'DESDE': ")
+        coordenada1 = input("Ingresá 3 dígitos separados por espacios de la coordenada 'DESDE': ")
         tupla_inicio = tuple(int(x) for x in coordenada1.split())
-        valido1=armamento._validar_punto(tupla_inicio, cubo)
+        valido1 = tablero.punto_valido(tupla_inicio, len(cubo))
         
-        coordenada2=input("Ingresá 3 dígitos separados por espacios de la coordenada 'HASTA': ")
+        coordenada2 = input("Ingresá 3 dígitos separados por espacios de la coordenada 'HASTA': ")
         tupla_final = tuple(int(x) for x in coordenada2.split())
-        valido2=armamento._validar_punto(tupla_final, cubo)
+        valido2 = tablero.punto_valido(tupla_final, len(cubo))
 
         if valido1 == False or valido2 == False:
             print("Coordenadas inválidas. Deben ser enteros entre 1 y " + str(len(cubo)))
@@ -471,11 +473,11 @@ def ubicacion_manual(cubo, catalogo, semilla=None):
     while colocada== False:
         coordenada1=input("Ingresá 3 dígitos separados por espacios de la coordenada 'DESDE': ")
         tupla_inicio = tuple(int(x) for x in coordenada1.split())
-        valido1=armamento._validar_punto(tupla_inicio, cubo)
+        valido1=tablero.punto_valido(tupla_inicio, len(cubo))
         
         coordenada2=input("Ingresá 3 dígitos separados por espacios de la coordenada 'HASTA': ")
         tupla_final = tuple(int(x) for x in coordenada2.split())
-        valido2=armamento._validar_punto(tupla_final, cubo)
+        valido2=tablero.punto_valido(tupla_final, len(cubo))
 
         if valido1 == False or valido2 == False:
             print("Coordenadas inválidas. Deben ser enteros entre 1 y " + str(len(cubo)))
@@ -495,11 +497,11 @@ def ubicacion_manual(cubo, catalogo, semilla=None):
     while colocada== False:
         coordenada1=input("Ingresá 3 dígitos separados por espacios de la coordenada 'DESDE': ")
         tupla_inicio = tuple(int(x) for x in coordenada1.split())
-        valido1=armamento._validar_punto(tupla_inicio, cubo)
+        valido1=tablero.punto_valido(tupla_inicio, len(cubo))
         
         coordenada2=input("Ingresá 3 dígitos separados por espacios de la coordenada 'HASTA': ")
         tupla_final = tuple(int(x) for x in coordenada2.split())
-        valido2=armamento._validar_punto(tupla_final, cubo)
+        valido2=tablero.punto_valido(tupla_final, len(cubo))
 
         if valido1 == False or valido2 == False:
             print("Coordenadas inválidas. Deben ser enteros entre 1 y " + str(len(cubo)))
@@ -519,11 +521,11 @@ def ubicacion_manual(cubo, catalogo, semilla=None):
     while colocada== False:
         coordenada1=input("Ingresá 3 dígitos separados por espacios de la coordenada 'DESDE': ")
         tupla_inicio = tuple(int(x) for x in coordenada1.split())
-        valido1=armamento._validar_punto(tupla_inicio, cubo)
+        valido1=tablero.punto_valido(tupla_inicio, len(cubo))
         
         coordenada2=input("Ingresá 3 dígitos separados por espacios de la coordenada 'HASTA': ")
         tupla_final = tuple(int(x) for x in coordenada2.split())
-        valido2=armamento._validar_punto(tupla_final, cubo)
+        valido2=tablero.punto_valido(tupla_final, len(cubo))
 
         if valido1 == False or valido2 == False:
             print("Coordenadas inválidas. Deben ser enteros entre 1 y " + str(len(cubo)))
@@ -543,11 +545,11 @@ def ubicacion_manual(cubo, catalogo, semilla=None):
     while colocada== False:
         coordenada1=input("Ingresá 3 dígitos separados por espacios de la coordenada 'DESDE': ")
         tupla_inicio = tuple(int(x) for x in coordenada1.split())
-        valido1=armamento._validar_punto(tupla_inicio, cubo)
+        valido1=tablero.punto_valido(tupla_inicio, len(cubo))
         
         coordenada2=input("Ingresá 3 dígitos separados por espacios de la coordenada 'HASTA': ")
         tupla_final = tuple(int(x) for x in coordenada2.split())
-        valido2=armamento._validar_punto(tupla_final, cubo)
+        valido2=tablero.punto_valido(tupla_final, len(cubo))
 
         if valido1 == False or valido2 == False:
             print("Coordenadas inválidas. Deben ser enteros entre 1 y " + str(len(cubo)))
@@ -567,11 +569,11 @@ def ubicacion_manual(cubo, catalogo, semilla=None):
     while colocada== False:
         coordenada1=input("Ingresá 3 dígitos separados por espacios de la coordenada 'DESDE': ")
         tupla_inicio = tuple(int(x) for x in coordenada1.split())
-        valido1=armamento._validar_punto(tupla_inicio, cubo)
+        valido1=tablero.punto_valido(tupla_inicio, len(cubo))
         
         coordenada2=input("Ingresá 3 dígitos separados por espacios de la coordenada 'HASTA': ")
         tupla_final = tuple(int(x) for x in coordenada2.split())
-        valido2=armamento._validar_punto(tupla_final, cubo)
+        valido2=tablero.punto_valido(tupla_final, len(cubo))
 
         if valido1 == False or valido2 == False:
             print("Coordenadas inválidas. Deben ser enteros entre 1 y " + str(len(cubo)))
@@ -620,8 +622,8 @@ def ubicacion_automatica(cubo, catalogo, semilla=None):
         lista_final.append(coordenada6)
         tupla_final=tuple(lista_final)
         
-        valido1=armamento._validar_punto(tupla_inicio, cubo) 
-        valido2=armamento._validar_punto(tupla_final, cubo)
+        valido1=tablero.punto_valido(tupla_inicio, len(cubo))
+        valido2=tablero.punto_valido(tupla_final, len(cubo))
 
         if valido1 == False or valido2 == False:
             print("Coordenadas inválidas. Deben ser enteros entre 1 y " + str(len(cubo)))
@@ -665,8 +667,8 @@ def ubicacion_automatica(cubo, catalogo, semilla=None):
         lista_final.append(coordenada6)
         tupla_final=tuple(lista_final)
 
-        valido1=armamento._validar_punto(tupla_inicio, cubo) 
-        valido2=armamento._validar_punto(tupla_final, cubo)
+        valido1=tablero.punto_valido(tupla_inicio, len(cubo))
+        valido2=tablero.punto_valido(tupla_final, len(cubo))
 
         if valido1 == False or valido2 == False:
             print("Coordenadas inválidas. Deben ser enteros entre 1 y " + str(len(cubo)))
@@ -709,8 +711,8 @@ def ubicacion_automatica(cubo, catalogo, semilla=None):
         lista_final.append(coordenada6)
         tupla_final=tuple(lista_final)
 
-        valido1=armamento._validar_punto(tupla_inicio, cubo) 
-        valido2=armamento._validar_punto(tupla_final, cubo)
+        valido1=tablero.punto_valido(tupla_inicio, len(cubo))
+        valido2=tablero.punto_valido(tupla_final, len(cubo))
 
         if valido1 == False or valido2 == False:
             print("Coordenadas inválidas. Deben ser enteros entre 1 y " + str(len(cubo)))
@@ -753,8 +755,8 @@ def ubicacion_automatica(cubo, catalogo, semilla=None):
         lista_final.append(coordenada6)
         tupla_final=tuple(lista_final)
 
-        valido1=armamento._validar_punto(tupla_inicio, cubo) 
-        valido2=armamento._validar_punto(tupla_final, cubo)
+        valido1=tablero.punto_valido(tupla_inicio, len(cubo))
+        valido2=tablero.punto_valido(tupla_final, len(cubo))
 
         if valido1 == False or valido2 == False:
             print("Coordenadas inválidas. Deben ser enteros entre 1 y " + str(len(cubo)))
@@ -797,8 +799,8 @@ def ubicacion_automatica(cubo, catalogo, semilla=None):
         lista_final.append(coordenada6)
         tupla_final=tuple(lista_final)
         
-        valido1=armamento._validar_punto(tupla_inicio, cubo) 
-        valido2=armamento._validar_punto(tupla_final, cubo)
+        valido1=tablero.punto_valido(tupla_inicio, len(cubo))
+        valido2=tablero.punto_valido(tupla_final, len(cubo))
         
         if valido1 == False or valido2 == False:
             print("Coordenadas inválidas. Deben ser enteros entre 1 y " + str(len(cubo)))
@@ -841,8 +843,8 @@ def ubicacion_automatica(cubo, catalogo, semilla=None):
         lista_final.append(coordenada6)
         tupla_final=tuple(lista_final)
         
-        valido1=armamento._validar_punto(tupla_inicio, cubo) 
-        valido2=armamento._validar_punto(tupla_final, cubo)
+        valido1=tablero.punto_valido(tupla_inicio, len(cubo))
+        valido2=tablero.punto_valido(tupla_final, len(cubo))
         
         if valido1 == False or valido2 == False:
             print("Coordenadas inválidas. Deben ser enteros entre 1 y " + str(len(cubo)))
