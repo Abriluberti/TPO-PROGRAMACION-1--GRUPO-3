@@ -1,4 +1,5 @@
 """Armas, celdas afectadas y administración de munición de Operación Cubo."""
+import tablero
 
 
 def _vecinos(punto):
@@ -13,7 +14,7 @@ def _vecinos(punto):
 
 def torpedo(cubo, punto, eje=None, flota=None):
     """Devuelve solamente la celda apuntada."""
-    if not _validar_punto(punto, len(cubo)):
+    if not tablero.punto_valido(punto, len(cubo)):
         return set()
     return {tuple(punto)}
 
@@ -21,14 +22,14 @@ def torpedo(cubo, punto, eje=None, flota=None):
 def racimo(cubo, punto, eje=None, flota=None):
     """Devuelve el punto apuntado y sus seis vecinos válidos."""
     n = len(cubo)
-    if not _validar_punto(punto, n):
+    if not tablero.punto_valido(punto, n):
         return set()
 
     punto = tuple(punto)
     celdas = {punto}
 
     for vecino in _vecinos(punto):
-        if _validar_punto(vecino, n):
+        if tablero.punto_valido(vecino, n):
             celdas.add(vecino)
 
     return celdas
@@ -37,7 +38,7 @@ def racimo(cubo, punto, eje=None, flota=None):
 def carga_profundidad(cubo, punto, eje=None, flota=None):
     """Devuelve la recta completa del eje z que pasa por el punto."""
     n = len(cubo)
-    if not _validar_punto(punto, n):
+    if not tablero.punto_valido(punto, n):
         return set()
 
     z, x, y = punto
@@ -52,7 +53,7 @@ def carga_profundidad(cubo, punto, eje=None, flota=None):
 def barrido_laser(cubo, punto, eje=None, flota=None):
     """Devuelve una recta completa sobre x o sobre y."""
     n = len(cubo)
-    if not _validar_punto(punto, n):
+    if not tablero.punto_valido(punto, n):
         return set()
 
     z, x, y = punto
@@ -90,7 +91,7 @@ def _propagar_onda(cubo, frontera, radio, visitadas):
 
     for punto in frontera:
         for vecino in _vecinos(punto):
-            if _validar_punto(vecino, len(cubo)):
+            if tablero.punto_valido(vecino, len(cubo)):
                 if vecino not in visitadas:
                     nueva_frontera.add(vecino)
 
@@ -101,7 +102,7 @@ def _propagar_onda(cubo, frontera, radio, visitadas):
 
 def onda_expansiva(cubo, punto, eje=None, flota=None, radio=RADIO_ONDA):
     """Calcula recursivamente las celdas alcanzadas por la onda expansiva."""
-    if not _validar_punto(punto, len(cubo)):
+    if not tablero.punto_valido(punto, len(cubo)):
         return set()
 
     if not isinstance(radio, int) or isinstance(radio, bool) or radio < 0:
@@ -138,7 +139,7 @@ def _buscar_celda_contigua(nave, punto, visitadas):
 
 def torpedo_guiado(cubo, punto, eje=None, flota=None):
     """Busca una celda contigua a un impacto previo de una nave no hundida."""
-    if flota is None or not _validar_punto(punto, len(cubo)):
+    if flota is None or not tablero.punto_valido(punto, len(cubo)):
         return set()
 
     punto = tuple(punto)
@@ -212,7 +213,7 @@ def disparar(letra, cubo, punto, eje=None, flota=None):
     """Despacha el arma y devuelve las celdas afectadas."""
     if letra not in ARMAS:
         return set()
-    if not _validar_punto(punto, len(cubo)):
+    if not tablero.punto_valido(punto, len(cubo)):
         return set()
 
     funcion = ARMAS[letra]

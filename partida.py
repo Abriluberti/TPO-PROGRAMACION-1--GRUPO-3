@@ -1,16 +1,50 @@
 
-import re
 import random
 import armamento
 import tablero
 import flota
+import re
+import partida
 
-
-
-PATRON_MENU_TURNO = r"^[1-3]$"
 PATRON_ARMA = r"^[TRCLOG]$"
 PATRON_OBJETIVO = r"^(\d+),(\d+),(\d+)$"
-PATRON_EJE = r"^[zxy]$"
+
+def ejecutar_menu_principal():
+    """Muestra el menú principal en ciclo y despacha la opción elegida con un diccionario.
+
+    Recibe:
+        Ningún parámetro.
+
+    Devuelve:
+        None al seleccionar la opción de salida.
+    """
+    rutas_menu = {
+        "1": opcion_1v1,
+        "2": opcion_vs_maquina,
+        "3": opcion_maquina_vs_maquina,
+        "4": opcion_continuar,
+        "5": opcion_salir
+    }
+
+    continuar = True
+    while continuar == True:
+        print("===== OPERACION CUBO =====")
+        print("1 - Partida uno contra uno")
+        print("2 - Partida uno contra la maquina")
+        print("3 - Partida maquina contra maquina")
+        print("4 - Continuar una partida guardada")
+        print("5 - Salir")
+
+        opcion = pedir_opcion_menu(
+            ["1", "2", "3", "4", "5"],
+            "Opcion: ",
+            "Opcion invalida. Ingrese un numero entre 1 y 5"
+        )
+
+        accion = rutas_menu.get(opcion)
+
+        if accion != None:
+            continuar = accion()
 
 
 def pedir_arma():
@@ -19,13 +53,13 @@ def pedir_arma():
     Devuelve la letra del arma elegida.
     """
 
-    while True:
-        arma = input("Arma (T/R/C/L/O/G): ").strip().upper()
+    return pedir_opcion_menu(
+        ["T", "R", "C", "L", "O", "G"],
+        "Arma (T/R/C/L/O/G): ",
+        "Arma no válida. Elija una de las armas disponibles.",
+        True
+    )
 
-        if re.match(PATRON_ARMA, arma) and arma in armamento.ARMAS:
-            return arma
-
-        print("Arma no válida. Elija una de las armas disponibles.")
 
 def pedir_eje(arma):
     """Pide el eje cuando el arma lo necesita.
@@ -93,13 +127,35 @@ def nueva_partida_1v1(configuracion):
     cubo_jugador_1 = tablero.crear_cubo(n_max)
     cubo_jugador_2 = tablero.crear_cubo(n_max)
 
-    flota_jugador_1, cubo_jugador_1 = flota.ubicacion_automatica(
-        cubo_jugador_1, flota.CATALOGO_NAVES, 1
+    modo_jugador_1 = pedir_opcion_menu(
+        ["1", "2"],
+        "Ubicacion jugador 1 (Manual: 1, Automatica: 2): ",
+        "El modo de ubicacion es invalido."
     )
 
-    flota_jugador_2, cubo_jugador_2 = flota.ubicacion_automatica(
-        cubo_jugador_2, flota.CATALOGO_NAVES, 2
+    modo_jugador_2 = pedir_opcion_menu(
+        ["1", "2"],
+        "Ubicacion jugador 2 (Manual: 1, Automatica: 2): ",
+        "El modo de ubicacion es invalido."
     )
+
+    if modo_jugador_1 == "1":
+        flota_jugador_1 = flota.ubicacion_manual(
+            cubo_jugador_1, flota.CATALOGO_NAVES, 1
+        )
+    else:
+        flota_jugador_1 = flota.ubicacion_automatica(
+            cubo_jugador_1, flota.CATALOGO_NAVES, 1
+        )
+
+    if modo_jugador_2 == "1":
+        flota_jugador_2 = flota.ubicacion_manual(
+            cubo_jugador_2, flota.CATALOGO_NAVES, 2
+        )
+    else:
+        flota_jugador_2 = flota.ubicacion_automatica(
+            cubo_jugador_2, flota.CATALOGO_NAVES, 2
+        )
 
     estado = {
         "n_max": n_max,
@@ -155,18 +211,17 @@ def hay_ganador(estado):
         El nombre del ganador o None si no hay ganador.
     """
     for id_jugador in (1, 2):
-        id_rival = 2 if id_jugador == 1 else 1
+        id_rival = 3 - id_jugador
+
         flota_rival = estado["jugadores"][id_rival]["flota"]
 
         if flota_rival:
-            todas_hundidas = all(
-                nave.get("hundida", False) for nave in flota_rival
-            )
+            todas_hundidas = flota_rival == []
 
             if todas_hundidas:
                 return estado["jugadores"][id_jugador]["nombre"]
 
-    return None
+            return None
 
 
 def es_turno_maquina(estado):
@@ -281,14 +336,13 @@ def ejecutar_turno(estado, jugada):
         impacto_previo = False
 
         for nave in oponente["flota"]:
-            if not nave.get("hundida", False):
-                impactos_nave = {
-                    tuple(punto) for punto in nave.get("impactos", set())
-                }
+            impactos_nave = {
+                tuple(punto) for punto in nave.get("impactos", set())
+            }
 
-                if objetivo in impactos_nave:
-                    impacto_previo = True
-                    break
+            if objetivo in impactos_nave:
+                impacto_previo = True
+                break
 
         if not impacto_previo:
             print("El torpedo guiado necesita un impacto previo en una nave no hundida.")
@@ -301,9 +355,8 @@ def ejecutar_turno(estado, jugada):
     ocupadas = set()
 
     for nave in oponente["flota"]:
-        if not nave.get("hundida", False):
-            for punto in nave.get("celdas", []):
-                ocupadas.add(tuple(punto))
+        for punto in nave:
+            ocupadas.add(tuple(punto))
 
     resultado = armamento.aplicar_disparo(
         arma,
@@ -336,12 +389,8 @@ def ejecutar_turno(estado, jugada):
         punto = tuple(punto)
 
         for nave in oponente["flota"]:
-            celdas_nave = [
-                tuple(celda) for celda in nave.get("celdas", [])
-            ]
-
-            if punto in celdas_nave:
-                impactos_nave = nave.setdefault("impactos", set())
+            if punto in nave:
+                impactos_nave = nave. ("impactos", set())
                 impactos_nave.add(punto)
 
                 resistencia = nave.get(
@@ -365,6 +414,167 @@ def ejecutar_turno(estado, jugada):
     else:
         estado["turno_actual"] = rival
 
+    print(tablero.dibujar_plano_x(oponente["cubo"], objetivo[0]))
+    print(tablero.dibujar_plano_y(oponente["cubo"], objetivo[1]))
+    print(tablero.dibujar_plano_z(oponente["cubo"], objetivo[2]))
+
     return estado
 
 
+
+# Funciones de validacion
+
+def pedir_opcion_menu(opciones_validas, texto, texto_opcion_invalida, mayuscula = False):
+    """Solicita y valida mediante expresiones regulares una opción numérica del menú.
+
+    Recibe:
+        texto_input: cadena de texto que se muestra al pedir el dato por consola.
+
+    Devuelve:
+        Cadena de texto con el número de opción validado entre 1 y 5.
+    """
+
+    opcion_seleccionada = ""
+
+    while opcion_seleccionada == "":
+        entrada = input_usuario(texto)
+
+        if mayuscula:
+            entrada = entrada.upper()
+
+        if entrada in opciones_validas:
+            opcion_seleccionada = entrada
+        else:
+            print(texto_opcion_invalida)
+
+    return opcion_seleccionada
+
+def input_usuario(texto):
+    """Solicita y valida mediante expresiones regulares una opción numérica del menú.
+
+    Recibe:
+        texto_input: cadena de texto que se muestra al pedir el dato por consola.
+
+    Devuelve:
+        Cadena de texto con el número de opción validado entre 1 y 5.
+    """
+    return input(texto)
+
+# Opciones del menu
+
+def opcion_1v1():
+    """Inicia y ejecuta una partida en formato uno contra uno.
+
+    Recibe:
+        Ningún parámetro.
+
+    Devuelve:
+        True al finalizar la partida para mantener activo el menú principal.
+    """
+    print("Iniciando Partida 1 contra 1...")
+
+    estado = partida.nueva_partida_1v1({"n": 8})
+
+    jugar_partida(estado)
+
+    return True
+
+
+def opcion_vs_maquina():
+    """Inicia y ejecuta una partida en formato jugador contra la máquina.
+
+    Recibe:
+        Ningún parámetro.
+
+    Devuelve:
+        True al finalizar la partida para mantener activo el menú principal.
+    """
+    print("Iniciando Partida contra la maquina...")
+
+    estado = partida.nueva_partida_vs_maquina({"n": 8})
+
+    jugar_partida(estado)
+
+    return True
+
+
+def opcion_maquina_vs_maquina():
+    """Inicia y ejecuta una partida en formato máquina contra máquina.
+
+    Recibe:
+        Ningún parámetro.
+
+    Devuelve:
+        True al finalizar la partida para mantener activo el menú principal.
+    """
+    print("Iniciando Partida maquina contra maquina...")
+
+    estado = partida.nueva_partida_maquina_vs_maquina(
+        {"n": 8},
+        ["facil", "facil"]
+    )
+
+    jugar_partida(estado)
+
+    return True
+def opcion_continuar():
+    """Permite buscar y retomar una partida guardada previamente.
+
+    Recibe:
+        Ningún parámetro.
+
+    Devuelve:
+        True para volver a mostrar el menú principal tras la operación.
+    """
+    print("Buscando partidas guardadas...")
+    return True
+
+def opcion_salir():
+    """Finaliza la ejecución del menú principal y cierra el juego.
+
+    Recibe:
+        Ningún parámetro.
+
+    Devuelve:
+        False para indicar el corte del ciclo del menú principal.
+    """
+    print("Saliendo del juego...")
+    return False
+
+
+# Funcion para seleccionar opcion del menu
+
+
+
+
+def jugar_partida(estado):
+    """
+    Gestiona el ciclo de turnos de una partida hasta que haya un ganador.
+
+    Recibe:
+        estado: diccionario con el estado actual de la partida (jugadores, turno y cubo).
+
+    Devuelve:
+        El diccionario de estado actualizado al finalizar la partida.
+    """
+    while estado["ganador"] is None:
+        actual = estado["turno_actual"]
+        jugador = estado["jugadores"][actual]
+
+        print("\nTurno de", jugador["nombre"])
+
+        arma = partida.pedir_arma()
+        objetivo = partida.pedir_objetivo(estado["n_max"])
+
+        jugada = {
+            "arma": arma,
+            "objetivo": objetivo
+        }
+
+        if arma in ("L", "S"):
+            jugada["eje"] = partida.pedir_eje(arma)
+
+        estado = partida.ejecutar_turno(estado, jugada)
+
+    print("Ganador:", estado["ganador"])
+    return estado

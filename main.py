@@ -1,4 +1,4 @@
-import menu
+import partida
 
 if __name__ == "__main__":
-    menu.ejecutar_menu_principal()
+    partida.ejecutar_menu_principal()

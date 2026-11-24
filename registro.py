@@ -3,20 +3,24 @@ import json
 import os
 import re
 
-def estadisticas(historial): 
-     """Cuenta las jugadas de cada jugador.
+CARPETA_PARTIDAS = os.path.join("datos", "partidas")
+CARPETA_EXPORTACIONES = os.path.join("datos", "exportaciones")
+RUTA_INDICE = os.path.join("datos", "partidas", "indice.txt")
+RUTA_RANKING = os.path.join("datos", "ranking.json")
+def estadisticas(historial):
+    """Cuenta las jugadas de cada jugador.
 
-    Recibe: historial (lista de jugadas).
-    Devuelve: diccionario {jugador: {"disparos", "impactos", "aguas"}}.
-    Lanza: nada.
-    """
+   Recibe: historial (lista de jugadas).
+   Devuelve: diccionario {jugador: {"disparos", "impactos", "aguas"}}.
+   Lanza: nada.
+   """
     resultado = {}
     for accion in historial:
         jugador = accion["jugador"]
         if jugador not in resultado:
             resultado[jugador] = {"disparos": 0, "impactos": 0, "aguas": 0}
         resultado[jugador]["disparos"] += 1
-    return resultado 
+    return resultado
 
 
 def resumen_final(historial, ganador):
@@ -36,18 +40,6 @@ def resumen_final(historial, ganador):
         texto += str(datos["impactos"]) + " impactos, "
         texto += str(datos["aguas"]) + " aguas\n"
     return texto
-
-CARPETA_PARTIDAS = os.path.join("datos", "partidas")
-CARPETA_EXPORTACIONES = os.path.join("datos", "exportaciones")
-RUTA_INDICE = os.path.join("datos", "partidas", "indice.txt")
-RUTA_RANKING = os.path.join("datos", "ranking.json")
-
-
-class RegistroError(Exception):
-
-
-class PartidaNoEncontradaError(RegistroError):
-
 
 def validar_nombre(nombre):
     """Revisa que el nombre tenga solo letras, números, - o _.
@@ -143,6 +135,7 @@ def lista_a_punto(lista):
     """
     return tuple(lista)
 
+
 def listar_partidas():
     """Lista los nombres de las partidas guardadas.
 
@@ -226,3 +219,8 @@ def obtener_ranking():
         jugadas = ranking[jugador]["jugadas"]
         lista.append((jugador, ganadas, jugadas))
     return sorted(lista, key=lambda t: (-t[1], t[2]))
+
+class RegistroError(Exception):
+    """Error general del registro."""
+class PartidaNoEncontradaError(RegistroError):
+    """Partida no encontrada."""

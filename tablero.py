@@ -380,3 +380,18 @@ def recorrer_por_filas(cubo):
                 recorrido.append((z, x, y))
 
     return recorrido
+
+def distancia_entre_puntos(punto1, punto2):
+    distancia = 0
+    for coordenada in (punto1 - punto2):
+        distancia += abs(coordenada)
+
+    return distancia
+
+
+def son_puntos_en_linea_recta(punto1, punto2):
+    if len(punto1) != len(punto2): return false
+    variacion_de_coordenada = 0
+    for coordenada in (0, len(punto1)):
+        if punto1[coordenada] != punto2[coordenada]: ++variacion_de_coordenada
+    return variacion_de_coordenada < 2
