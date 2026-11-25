@@ -139,21 +139,24 @@ def nueva_partida_1v1(configuracion):
         "El modo de ubicacion es invalido."
     )
 
+    # OJO: ubicacion_manual/ubicacion_automatica devuelven (cubo, flota),
+    # no solo la flota. Antes se pisaba flota_jugador_x con la tupla entera
+    # y de ahi en adelante todo lo que esperaba una lista de naves rompia.
     if modo_jugador_1 == "1":
-        flota_jugador_1 = flota.ubicacion_manual(
+        cubo_jugador_1, flota_jugador_1 = flota.ubicacion_manual(
             cubo_jugador_1, flota.CATALOGO_NAVES, 1
         )
     else:
-        flota_jugador_1 = flota.ubicacion_automatica(
+        cubo_jugador_1, flota_jugador_1 = flota.ubicacion_automatica(
             cubo_jugador_1, flota.CATALOGO_NAVES, 1
         )
 
     if modo_jugador_2 == "1":
-        flota_jugador_2 = flota.ubicacion_manual(
+        cubo_jugador_2, flota_jugador_2 = flota.ubicacion_manual(
             cubo_jugador_2, flota.CATALOGO_NAVES, 2
         )
     else:
-        flota_jugador_2 = flota.ubicacion_automatica(
+        cubo_jugador_2, flota_jugador_2 = flota.ubicacion_automatica(
             cubo_jugador_2, flota.CATALOGO_NAVES, 2
         )
 
@@ -167,14 +170,18 @@ def nueva_partida_1v1(configuracion):
                 "cubo": cubo_jugador_1,
                 "flota": flota_jugador_1,
                 "municion": armamento.municion_inicial(),
-                "disparos": set()
+                "disparos": set(),
+                # celdas propias que el rival ya impacto, se usa para
+                # saber si una nave se hundio y si se gano la partida
+                "impactos_recibidos": set()
             },
             2: {
                 "nombre": "Jugador 2",
                 "cubo": cubo_jugador_2,
                 "flota": flota_jugador_2,
                 "municion": armamento.municion_inicial(),
-                "disparos": set()
+                "disparos": set(),
+                "impactos_recibidos": set()
             }
         },
         "ganador": None
@@ -201,6 +208,29 @@ def nueva_partida_vs_maquina(configuracion, dificultad="facil"):
     return estado
 
 
+def nueva_partida_maquina_vs_maquina(configuracion, dificultades=("facil", "facil")):
+    """Crea el estado inicial de una partida entre dos máquinas.
+
+    Recibe:
+        configuracion: configuración de la partida.
+        dificultades: nivel de cada máquina (jugador 1 y jugador 2).
+
+    Devuelve:
+        El estado inicial de la partida.
+    """
+    # esta funcion faltaba por completo: opcion_maquina_vs_maquina() ya
+    # la llamaba pero no existia, tiraba AttributeError al elegir la
+    # opcion 3 del menu.
+    estado = nueva_partida_1v1(configuracion)
+
+    estado["modo"] = "maquina_vs_maquina"
+    estado["dificultad"] = dificultades
+    estado["jugadores"][1]["nombre"] = "Máquina 1"
+    estado["jugadores"][2]["nombre"] = "Máquina 2"
+
+    return estado
+
+
 def hay_ganador(estado):
     """Comprueba si algún jugador hundió toda la flota rival.
 
@@ -214,14 +244,17 @@ def hay_ganador(estado):
         id_rival = 3 - id_jugador
 
         flota_rival = estado["jugadores"][id_rival]["flota"]
+        impactos_rival = estado["jugadores"][id_rival]["impactos_recibidos"]
 
-        if flota_rival:
-            todas_hundidas = flota_rival == []
+        # las naves nunca se borran de la flota (flota.py no las saca de
+        # la lista), asi que "todo hundido" significa que cada celda de
+        # cada nave ya fue impactada, no que la lista este vacia
+        celdas_rival = [tuple(celda) for nave in flota_rival for celda in nave]
 
-            if todas_hundidas:
-                return estado["jugadores"][id_jugador]["nombre"]
+        if celdas_rival and all(celda in impactos_rival for celda in celdas_rival):
+            return estado["jugadores"][id_jugador]["nombre"]
 
-            return None
+    return None
 
 
 def es_turno_maquina(estado):
@@ -233,6 +266,9 @@ def es_turno_maquina(estado):
     Devuelve:
         True si juega la máquina; False en caso contrario.
     """
+    if estado["modo"] == "maquina_vs_maquina":
+        return True
+
     return (
         estado["modo"] == "vs_maquina"
         and estado["turno_actual"] == 2
@@ -276,6 +312,27 @@ def turno_maquina(estado):
     print(f"La máquina dispara a {disparo}.")
 
     return ejecutar_turno(estado, jugada)
+
+
+def _adaptar_flota(flota_jugador, impactos_recibidos):
+    """Convierte la flota (listas de celdas, formato de flota.py) al
+    formato de nave con diccionario que espera armamento.py (celdas,
+    impactos, hundida). Se usa solo para pasarsela a armamento, el
+    estado real de la partida sigue guardando la flota como listas.
+    """
+    naves_adaptadas = []
+
+    for celdas_nave in flota_jugador:
+        celdas = {tuple(celda) for celda in celdas_nave}
+        impactos = celdas & impactos_recibidos
+
+        naves_adaptadas.append({
+            "celdas": celdas,
+            "impactos": impactos,
+            "hundida": impactos == celdas
+        })
+
+    return naves_adaptadas
 
 
 def ejecutar_turno(estado, jugada):
@@ -333,18 +390,20 @@ def ejecutar_turno(estado, jugada):
     oponente = estado["jugadores"][rival]
 
     if arma == "G":
-        impacto_previo = False
+        # las naves son listas de celdas (no diccionarios), asi que el
+        # impacto previo se busca contra impactos_recibidos directamente.
+        # Ademas descartamos las naves ya hundidas: si todas sus celdas
+        # estan impactadas, no sirven como blanco del torpedo guiado.
+        celdas_validas_para_guiado = set()
 
         for nave in oponente["flota"]:
-            impactos_nave = {
-                tuple(punto) for punto in nave.get("impactos", set())
-            }
+            celdas_nave = {tuple(punto) for punto in nave}
+            impactos_nave = celdas_nave & oponente["impactos_recibidos"]
 
-            if objetivo in impactos_nave:
-                impacto_previo = True
-                break
+            if impactos_nave and impactos_nave != celdas_nave:
+                celdas_validas_para_guiado |= impactos_nave
 
-        if not impacto_previo:
+        if objetivo not in celdas_validas_para_guiado:
             print("El torpedo guiado necesita un impacto previo en una nave no hundida.")
             return estado
 
@@ -358,6 +417,12 @@ def ejecutar_turno(estado, jugada):
         for punto in nave:
             ocupadas.add(tuple(punto))
 
+    # armamento.py (torpedo_guiado) espera que cada nave sea un diccionario
+    # con "celdas"/"impactos"/"hundida", pero en flota.py cada nave es
+    # simplemente una lista de celdas. Se adapta aca para no modificar
+    # ni armamento.py ni flota.py.
+    flota_para_armamento = _adaptar_flota(oponente["flota"], oponente["impactos_recibidos"])
+
     resultado = armamento.aplicar_disparo(
         arma,
         oponente["cubo"],
@@ -365,7 +430,7 @@ def ejecutar_turno(estado, jugada):
         ocupadas,
         jugador["municion"],
         eje,
-        oponente["flota"],
+        flota_para_armamento,
         jugador["disparos"]
     )
 
@@ -392,14 +457,14 @@ def ejecutar_turno(estado, jugada):
             if punto in nave:
                 oponente["impactos_recibidos"].add(punto)
 
-                resistencia = len(nave)
-
+                # antes esto tambien hacia nave["hundida"] = True, pero
+                # nave es una lista de celdas, no un diccionario -> rompia
+                # con TypeError en cuanto entraba un impacto. La nave ya
+                # queda marcada como hundida de forma implicita cuando
+                # todas sus celdas estan en impactos_recibidos.
                 if all(tuple(celda) in oponente["impactos_recibidos"] for celda in nave):
                     print("¡Hundiste una nave!")
-
-                if len(impactos_nave) >= resistencia:
-                    nave["hundida"] = True
-                    print("¡Hundiste una nave!")
+                break
 
     print(f"Celdas afectadas: {len(resultado['celdas'])}")
     print(f"Impactos: {len(resultado['impactos'])}")
@@ -413,9 +478,9 @@ def ejecutar_turno(estado, jugada):
     else:
         estado["turno_actual"] = rival
 
-    print(tablero.dibujar_plano_x(oponente["cubo"], objetivo[0]))
-    print(tablero.dibujar_plano_y(oponente["cubo"], objetivo[1]))
-    print(tablero.dibujar_plano_z(oponente["cubo"], objetivo[2]))
+    # se sacan los 3 planos que se imprimian despues de cada jugada
+    # (ensuciaban la consola en cada turno; ademas los ejes estaban mal
+    # pasados: dibujar_plano_x recibia objetivo[0], que es z, no x)
 
     return estado
 
@@ -561,6 +626,13 @@ def jugar_partida(estado):
         jugador = estado["jugadores"][actual]
 
         print("\nTurno de", jugador["nombre"])
+
+        # faltaba esto: si le toca a la maquina, que juegue sola.
+        # antes siempre se le pedia arma/objetivo al humano, incluso
+        # en el turno del jugador 2 cuando el modo era vs_maquina.
+        if partida.es_turno_maquina(estado):
+            estado = partida.turno_maquina(estado)
+            continue
 
         arma = partida.pedir_arma()
         objetivo = partida.pedir_objetivo(estado["n_max"])
