@@ -3,31 +3,27 @@ import json
 import os
 import re
 
-CARPETA_PARTIDAS = os.path.join("datos", "partidas")
-CARPETA_EXPORTACIONES = os.path.join("datos", "exportaciones")
-RUTA_INDICE = os.path.join("datos", "partidas", "indice.txt")
-RUTA_RANKING = os.path.join("datos", "ranking.json")
-def estadisticas(historial):
-    """Cuenta las jugadas de cada jugador.
+def estadisticas(historial): 
+     """Cuenta las jugadas de cada jugador.
 
-   Recibe: historial (lista de jugadas).
-   Devuelve: diccionario {jugador: {"disparos", "impactos", "aguas"}}.
-   Lanza: nada.
-   """
+    Recibe: historial (lista de jugadas).
+    Devuelve: diccionario {jugador: {"disparos", "impactos", "aguas"}}.
+    Lanza: nada.
+    """
     resultado = {}
     for accion in historial:
         jugador = accion["jugador"]
         if jugador not in resultado:
             resultado[jugador] = {"disparos": 0, "impactos": 0, "aguas": 0}
         resultado[jugador]["disparos"] += 1
-    return resultado
+    return resultado 
 
 
 def resumen_final(historial, ganador):
     """Arma el texto del resumen al terminar la partida.
 
-    Recibe: historial (lista de jugadas) y ganador (str).
-    Devuelve: texto (str) para que el integrador lo imprima.
+    Recibe: historial (lista de jugadas) y ganador.
+    Devuelve: texto para que se imprima.
     Lanza: nada.
     """
     resultado = estadisticas(historial)
@@ -40,6 +36,19 @@ def resumen_final(historial, ganador):
         texto += str(datos["impactos"]) + " impactos, "
         texto += str(datos["aguas"]) + " aguas\n"
     return texto
+
+
+CARPETA_PARTIDAS = os.path.join("datos", "partidas")
+CARPETA_EXPORTACIONES = os.path.join("datos", "exportaciones")
+RUTA_INDICE = os.path.join("datos", "partidas", "indice.txt")
+RUTA_RANKING = os.path.join("datos", "ranking.json")
+
+
+class RegistroError(Exception):
+
+
+class PartidaNoEncontradaError(RegistroError):
+
 
 def validar_nombre(nombre):
     """Revisa que el nombre tenga solo letras, números, - o _.
@@ -75,7 +84,7 @@ def leer_json(ruta, valor_si_no_existe):
 def escribir_json(ruta, datos):
     """Escribe datos en un archivo JSON.
 
-    Recibe: ruta (str) y datos (dict o lista).
+    Recibe: ruta  y datos (diccionario o lista).
     Devuelve: None.
     Lanza: RegistroError si no se puede escribir (por ejemplo, si la
            carpeta no existe o los datos no se pueden guardar).
@@ -90,7 +99,7 @@ def escribir_json(ruta, datos):
 def guardar_partida(estado, nombre):
     """Guarda la partida en datos/partidas/<nombre>.json.
 
-    Recibe: estado (dict) y nombre (str).
+    Recibe: estado (diccionario) y nombre (str).
     Devuelve: la ruta del archivo escrito.
     Lanza: RegistroError si el nombre es inválido o no se puede guardar.
     """
@@ -109,10 +118,6 @@ def guardar_partida(estado, nombre):
 
 def cargar_partida(nombre):
     """Carga una partida guardada.
-
-    Ojo: las tuplas vuelven como listas. Para volver a tener un punto
-    (z, x, y) usar lista_a_punto.
-
     Recibe: nombre.
     Devuelve: el estado de la partida (dict).
     Lanza: RegistroError si el nombre es inválido o el archivo está dañado;
@@ -134,7 +139,6 @@ def lista_a_punto(lista):
     Lanza: nada.
     """
     return tuple(lista)
-
 
 def listar_partidas():
     """Lista los nombres de las partidas guardadas.
@@ -219,8 +223,3 @@ def obtener_ranking():
         jugadas = ranking[jugador]["jugadas"]
         lista.append((jugador, ganadas, jugadas))
     return sorted(lista, key=lambda t: (-t[1], t[2]))
-
-class RegistroError(Exception):
-    """Error general del registro."""
-class PartidaNoEncontradaError(RegistroError):
-    """Partida no encontrada."""
