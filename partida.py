@@ -6,7 +6,7 @@ import flota
 import re
 import partida
 
-PATRON_ARMA = r"^[TRCLOG]$"
+PATRON_ARMA = r"^[TRCLOGS]$"
 PATRON_OBJETIVO = r"^(\d+),(\d+),(\d+)$"
 
 def ejecutar_menu_principal():
@@ -54,8 +54,8 @@ def pedir_arma():
     """
 
     return pedir_opcion_menu(
-        ["T", "R", "C", "L", "O", "G"],
-        "Arma (T/R/C/L/O/G): ",
+        ["T", "R", "C", "L", "O", "G", "S"],
+        "Arma (T/R/C/L/O/G/S): ",
         "Arma no válida. Elija una de las armas disponibles.",
         True
     )
