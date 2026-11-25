@@ -390,13 +390,12 @@ def ejecutar_turno(estado, jugada):
 
         for nave in oponente["flota"]:
             if punto in nave:
-                impactos_nave = nave. ("impactos", set())
-                impactos_nave.add(punto)
+                oponente["impactos_recibidos"].add(punto)
 
-                resistencia = nave.get(
-                    "resistencia",
-                    len(celdas_nave)
-                )
+                resistencia = len(nave)
+
+                if all(tuple(celda) in oponente["impactos_recibidos"] for celda in nave):
+                    print("¡Hundiste una nave!")
 
                 if len(impactos_nave) >= resistencia:
                     nave["hundida"] = True
