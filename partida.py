@@ -414,6 +414,25 @@ def _revelar_celda_destructor(oponente):
         print(f"¡El destructor averiado revela una celda ocupada del rival!: {celda}")
 
 
+def _celda_portaaviones_pendiente(oponente, objetivo):
+    """Indica si objetivo es una celda de un Portaaviones que ya recibió
+    un primer impacto y necesita un segundo para contar como impacto real.
+
+    Comportamiento propio del Portaaviones: cada celda requiere dos
+    impactos. Mientras falte el segundo, hay que poder volver a
+    dispararle a esa misma celda (que si no, "ya disparaste ahi" lo
+    bloquearía para siempre).
+
+    Recibe: oponente (jugador dueño de la flota atacada), objetivo.
+    Devuelve: True si hace falta un segundo impacto en esa celda.
+    """
+    for nave in oponente["flota"]:
+        if nave["letra"] == "P" and objetivo in nave["impactos_parciales"]:
+            return True
+
+    return False
+
+
 def _aplicar_bonus_estacion(estado, actual, nave):
     """Comportamiento propio de la Estación orbital: al hundirse otorga
     munición extra al jugador que la hundió.
@@ -553,7 +572,7 @@ def ejecutar_turno(estado, jugada):
             print("El torpedo guiado necesita un impacto previo en una nave no hundida.")
             return estado
 
-    elif objetivo in jugador["disparos"]:
+    elif objetivo in jugador["disparos"] and not _celda_portaaviones_pendiente(oponente, objetivo):
         print("Ya disparaste a esa coordenada.")
         return estado
 
@@ -567,6 +586,13 @@ def ejecutar_turno(estado, jugada):
             if nave["letra"] == "S":
                 ocupadas = ocupadas - nave["celdas"]
 
+    # armamento.aplicar_disparo descarta las celdas ya disparadas antes;
+    # si el objetivo es una celda de portaaviones que espera su segundo
+    # impacto, hay que sacarla de esa lista para que no se descarte sola
+    disparos_previos = jugador["disparos"]
+    if _celda_portaaviones_pendiente(oponente, objetivo):
+        disparos_previos = disparos_previos - {objetivo}
+
     resultado = armamento.aplicar_disparo(
         arma,
         oponente["cubo"],
@@ -575,7 +601,7 @@ def ejecutar_turno(estado, jugada):
         jugador["municion"],
         eje,
         oponente["flota"],
-        jugador["disparos"]
+        disparos_previos
     )
 
     if not resultado["celdas"]:
@@ -599,6 +625,16 @@ def ejecutar_turno(estado, jugada):
 
         for nave in oponente["flota"]:
             if punto in nave["celdas"]:
+                # comportamiento propio del portaaviones: la celda recien
+                # impactada no cuenta como impacto real hasta el segundo golpe
+                if nave["letra"] == "P" and punto not in nave["impactos"]:
+                    if punto not in nave["impactos_parciales"]:
+                        nave["impactos_parciales"].add(punto)
+                        print("Impacto parcial en el portaaviones: necesita un segundo impacto en esa celda.")
+                        break
+
+                    nave["impactos_parciales"].discard(punto)
+
                 ya_estaba_impactada = punto in nave["impactos"]
                 nave["impactos"].add(punto)
 
@@ -662,6 +698,9 @@ def _estado_para_guardar(estado):
                     "letra": nave["letra"],
                     "celdas": [list(celda) for celda in nave["celdas"]],
                     "impactos": [list(celda) for celda in nave["impactos"]],
+                    "impactos_parciales": [
+                        list(celda) for celda in nave["impactos_parciales"]
+                    ],
                     "hundida": nave["hundida"]
                 }
                 for nave in jugador["flota"]
@@ -698,6 +737,9 @@ def _estado_desde_guardado(datos):
                     "letra": nave["letra"],
                     "celdas": {tuple(celda) for celda in nave["celdas"]},
                     "impactos": {tuple(celda) for celda in nave["impactos"]},
+                    "impactos_parciales": {
+                        tuple(celda) for celda in nave.get("impactos_parciales", [])
+                    },
                     "hundida": nave["hundida"]
                 }
                 for nave in jugador["flota"]

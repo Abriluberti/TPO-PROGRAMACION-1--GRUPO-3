@@ -102,10 +102,63 @@ def test_ejecutar_turno_submarino_inmune_al_laser():
     assert submarino["impactos"] == set()
 
 
+def test_portaaviones_necesita_dos_impactos_por_celda():
+    estado = _estado_vacio()
+    portaaviones = next(n for n in estado["jugadores"][2]["flota"] if n["letra"] == "P")
+    celda = sorted(portaaviones["celdas"])[0]
+
+    estado["turno_actual"] = 1
+    estado = partida.ejecutar_turno(estado, {"arma": "T", "objetivo": celda})
+
+    assert celda in portaaviones["impactos_parciales"]
+    assert celda not in portaaviones["impactos"]
+
+    estado["turno_actual"] = 1
+    estado = partida.ejecutar_turno(estado, {"arma": "T", "objetivo": celda})
+
+    assert celda in portaaviones["impactos"]
+    assert celda not in portaaviones["impactos_parciales"]
+
+
+def test_portaaviones_tercer_disparo_a_celda_confirmada_se_rechaza():
+    estado = _estado_vacio()
+    portaaviones = next(n for n in estado["jugadores"][2]["flota"] if n["letra"] == "P")
+    celda = sorted(portaaviones["celdas"])[0]
+
+    for _ in range(2):
+        estado["turno_actual"] = 1
+        estado = partida.ejecutar_turno(estado, {"arma": "T", "objetivo": celda})
+
+    disparos_antes = set(estado["jugadores"][1]["disparos"])
+    estado["turno_actual"] = 1
+    estado = partida.ejecutar_turno(estado, {"arma": "T", "objetivo": celda})
+
+    assert estado["jugadores"][1]["disparos"] == disparos_antes
+
+
+def test_portaaviones_se_hunde_tras_doble_impacto_en_todas_sus_celdas():
+    estado = _estado_vacio()
+    portaaviones = next(n for n in estado["jugadores"][2]["flota"] if n["letra"] == "P")
+
+    for celda in sorted(portaaviones["celdas"]):
+        for _ in range(2):
+            estado["turno_actual"] = 1
+            estado = partida.ejecutar_turno(estado, {"arma": "T", "objetivo": celda})
+
+    assert portaaviones["hundida"] is True
+    assert portaaviones["impactos"] == portaaviones["celdas"]
+
+
 def test_estado_para_guardar_y_cargar_es_equivalente():
     estado = _estado_vacio()
     estado["turno_actual"] = 2
     estado["jugadores"][1]["disparos"].add((1, 1, 1))
+
+    # dejo un impacto parcial de portaaviones a medio resolver
+    portaaviones = next(n for n in estado["jugadores"][2]["flota"] if n["letra"] == "P")
+    celda_parcial = sorted(portaaviones["celdas"])[0]
+    estado["turno_actual"] = 1
+    estado = partida.ejecutar_turno(estado, {"arma": "T", "objetivo": celda_parcial})
 
     guardado = partida._estado_para_guardar(estado)
     recuperado = partida._estado_desde_guardado(guardado)
@@ -119,6 +172,7 @@ def test_estado_para_guardar_y_cargar_es_equivalente():
     ):
         assert original["letra"] == vuelta["letra"]
         assert original["celdas"] == vuelta["celdas"]
+        assert original["impactos_parciales"] == vuelta["impactos_parciales"]
 
 
 def test_crear_jugador_automatico_no_pide_nada():

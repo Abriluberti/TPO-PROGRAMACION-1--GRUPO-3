@@ -163,7 +163,7 @@ def ubicar_nave(cubo, flota, letra, punto_desde, punto_hasta):
     Devuelve:
         (cubo, flota) actualizados, con la nueva nave agregada a la
         flota como un diccionario {"letra", "celdas", "impactos",
-        "hundida"}.
+        "impactos_parciales", "hundida"}.
 
     Lanza:
         FlotaError si la letra no existe, si ya se ubicaron todas las
@@ -198,6 +198,10 @@ def ubicar_nave(cubo, flota, letra, punto_desde, punto_hasta):
         "letra": letra,
         "celdas": set(celdas),
         "impactos": set(),
+        # solo la usa el Portaaviones (cada celda necesita dos impactos),
+        # pero se deja vacia en todas las naves para que el diccionario
+        # tenga siempre la misma forma
+        "impactos_parciales": set(),
         "hundida": False
     }
     flota = flota + [nave]
@@ -263,7 +267,15 @@ def ubicacion_automatica(cubo, catalogo, semilla=None):
     n = len(cubo)
     flota = []
 
-    for letra, datos_nave in catalogo.items():
+    # se ubican primero las naves mas grandes (mas dificiles de encajar):
+    # si se dejan para el final, cuando ya no queda tanto lugar libre, el
+    # sorteo al azar fallaba mucho mas seguido (hasta 1 de cada 10 veces
+    # para la estacion en un cubo de 8)
+    orden_de_ubicacion = sorted(
+        catalogo.items(), key=lambda item: item[1]["tamanio"], reverse=True
+    )
+
+    for letra, datos_nave in orden_de_ubicacion:
         for _ in range(datos_nave["cantidad"]):
             ubicada = False
 
