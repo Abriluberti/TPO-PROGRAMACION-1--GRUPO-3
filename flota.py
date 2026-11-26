@@ -1,844 +1,287 @@
+"""Catalogo de naves y ubicacion de la flota en el cubo.
+
+Este modulo no imprime ni pide datos por consola: recibe los puntos ya
+elegidos (por un jugador o por el azar) y devuelve el cubo y la flota
+actualizados, o lanza FlotaError si la ubicacion no es valida. El
+integrador (partida.py) es el que arma el dialogo con el usuario.
+"""
 import random
-import armamento
+
 import tablero
 
 
-def colocar(cubo, diccionario, tupla_inicio, tupla_final):
-    a = tupla_inicio[0]-1
-    b = tupla_inicio[1]-1
-    c = tupla_inicio[2]-1
+class FlotaError(Exception):
+    """Error al ubicar una nave."""
 
-    z = tupla_final[0]-1
-    x = tupla_final[1]-1
-    y = tupla_final[2]-1
 
-    if diccionario["reglas"] != False:
-        if diccionario["reglas"] == "submarino":
-            if c+1 <= len(cubo)/2 or y+1 <= len(cubo)/2:
-                return False, "El submarino no puede colocarse tan alto"
+# Catalogo de naves: tamanio (celdas que ocupa en linea recta, salvo la
+# estacion que es un bloque 2x2x2), cantidad de naves de ese tipo por
+# flota, y la restriccion de ubicacion propia (None = sin restriccion).
+CATALOGO_NAVES = {
+    "F": {"nombre": "Fragata", "tamanio": 2, "cantidad": 3, "reglas": None},
+    "D": {"nombre": "Destructor", "tamanio": 3, "cantidad": 2, "reglas": None},
+    "S": {"nombre": "Submarino", "tamanio": 3, "cantidad": 2, "reglas": "submarino"},
+    "C": {"nombre": "Crucero", "tamanio": 4, "cantidad": 1, "reglas": "crucero"},
+    "P": {"nombre": "Portaaviones", "tamanio": 5, "cantidad": 1, "reglas": "portaaviones"},
+    "E": {"nombre": "Estacion", "tamanio": 8, "cantidad": 1, "reglas": "estacion"},
+}
 
-        if diccionario["reglas"] == "crucero":
-            if a == 0 or z == 0 or a == len(cubo)-1 or z == len(cubo)-1:
-                return False, "El crucero no puede colocarse en los bordes del eje Z"
+# tope de intentos al azar por nave antes de rendirse (evita loop infinito
+# cuando el cubo es demasiado chico para la flota completa)
+INTENTOS_MAXIMOS = 400
 
-        if diccionario["reglas"] == "portaaviones":
-            if c+1 > len(cubo)/2 or y+1 > len(cubo)/2:
-                return False, "El portaaviones no puede colocarse tan bajo"
 
-        if diccionario["reglas"] == "estacion":
-            if a == 0 or a >= len(cubo) or b == 0 or b >= len(cubo) or c == 0 or c >= len(cubo) or z == 0 or z >= len(cubo) or x == 0 or x >= len(cubo) or y == 0 or y >= len(cubo):
-                return False, "La estacion no puede colocarse en los bordes del cubo"
+def _celdas_del_tramo(punto_desde, punto_hasta):
+    """Calcula las celdas de una nave recta entre dos puntos extremos.
 
-            if a == z or b == x or c == y:
-                return False, "Las celdas no deben ser continuas para la estacion"
+    Recibe:
+        punto_desde, punto_hasta: tuplas (z, x, y).
 
-            else:
-                if max(a, z) - min(a, z) != 1 or max(b, x) - min(b, x) != 1 or max(c, y) - min(c, y) != 1:
-                    return False, "La nave debe ocupar un espacio de 2x2x2"
+    Devuelve:
+        Lista de tuplas (z, x, y), del extremo "desde" al "hasta".
 
-                elif cubo[a][b][c] == "?" or cubo[a][b][c+1] == "?" or cubo[a][b+1][c] == "?" or cubo[a][b+1][c+1] == "?" or cubo[a+1][b][c] == "?" or cubo[a+1][b][c+1] == "?" or cubo[a+1][b+1][c] == "?" or cubo[a+1][b+1][c+1] == "?":
-                    return False, "Ya hay otra nave ocupando esa posición."
-
-                else:
-                    for i in range(min(a, z), max(a, z)+1):
-                        for j in range(min(c, y), max(c, y)+1):
-                            for k in range(min(b, x), max(b, x)+1):
-                                cubo[i][j][k] = "?"
-                                diccionario["celdas"].append((i+1, k+1, j+1))
-
-            return cubo, None
-
-    # Verifico que las celdas sean continuas
-    if (a != z and b != x) or (a != z and c != y) or (b != x and c != y):
-        return False, "Las celdas no son continuas"
-
-    # Si varía en el eje Z (profundidad)
-    if b == x and c == y:
-        if max(a, z) - min(a, z) != diccionario["tamanio"]-1:
-            return False, "La nave debe ocupar " + str(diccionario["tamanio"]) + " espacios"
-
-        for i in range(min(a, z), max(a, z) + 1):
-            if cubo[i][c][b] == "?":
-                return False, "Ya hay otra nave ocupando esa posición."
-
-        for i in range(min(a, z), max(a, z) + 1):
-            cubo[i][c][b] = "?"
-            diccionario["celdas"].append((i+1, b+1, c+1))
-
-    # Si varía en el eje X (longitud)
-    if a == z and c == y:
-        if max(b, x) - min(b, x) != diccionario["tamanio"]-1:
-            return False, "La nave debe ocupar " + str(diccionario["tamanio"]) + " espacios"
-
-        for j in range(min(b, x), max(b, x) + 1):
-            if cubo[a][c][j] == "?":
-                return False, "Ya hay otra nave ocupando esa posición."
-
-        for j in range(min(b, x), max(b, x) + 1):
-            cubo[a][c][j] = "?"
-            diccionario["celdas"].append((a+1, j+1, c+1))
-
-    # Si varía en el eje Y (altura)
-    if a == z and b == x:
-        if max(c, y) - min(c, y) != diccionario["tamanio"]-1:
-            return False, "La nave debe ocupar " + str(diccionario["tamanio"]) + " espacios"
-
-        for k in range(min(c, y), max(c, y) + 1):
-            if cubo[a][k][b] == "?":
-                return False, "Ya hay otra nave ocupando esa posición."
-
-        for k in range(min(c, y), max(c, y) + 1):
-            cubo[a][k][b] = "?"
-            diccionario["celdas"].append((a+1, b+1, k+1))
-
-    return cubo, None
-
-
-#La siguiente función utiliza la lista "celdas" utilizada en la sección de Armamento
-#Dicha lista esta formada por tuplas que contienen las coordenadas de las celdas afectadas por las diferentes armas.
-#La siguiente funcion recorre dicha lista comparando las coordenadas del blanco con las ocupadas.
-
-def verificar_impactos(cubo, celdas, CATALOGO_NAVES, flota):
-    punto = celdas[i]
-    z = punto[0]
-    y = punto[1]
-    x = punto[2]
-    for i in range(len(celdas)):
-
-#Chequeo Fragata
-        if celdas[i] in CATALOGO_NAVES["Fragata"]["celdas"]:
-            print("Impacto")
-            cubo[z][y][x]=X
-            if CATALOGO_NAVES["Fragata"]["celdas"][0]==X and CATALOGO_NAVES["Fragata"]["celdas"][1]==X:
-                print("Fragata hundida")
-                cubo[CATALOGO_NAVES["Fragata"]["celdas"][0][0]][CATALOGO_NAVES["Fragata"]["celdas"][0][1]][CATALOGO_NAVES["Fragata"]["celdas"][0][2]]="#" #Reemplazo todas las celdas
-                cubo[CATALOGO_NAVES["Fragata"]["celdas"][1][0]][CATALOGO_NAVES["Fragata"]["celdas"][1][1]][CATALOGO_NAVES["Fragata"]["celdas"][1][2]]="#"  #de la nave por # (hundido)
-                flota.remove(CATALOGO_NAVES["Fragata"]["celdas"])
-                CATALOGO_NAVES["Fragata"]["estado"] = "hundida"
-
-#Chequeo Destructor
-        if celdas[i] in CATALOGO_NAVES["Destructor"]["celdas"]:
-            print("Impacto")
-            cubo[z][y][x]=X
-            if CATALOGO_NAVES["Destructor"]["celdas"][0]==X and CATALOGO_NAVES["Destructor"]["celdas"][1]==X and CATALOGO_NAVES["Destructor"]["celdas"][2]==X:
-                print("Destructor hundido")
-                cubo[CATALOGO_NAVES["Destructor"]["celdas"][0][0]][CATALOGO_NAVES["Destructor"]["celdas"][0][1]][CATALOGO_NAVES["Destructor"]["celdas"][0][2]]="#"
-                cubo[CATALOGO_NAVES["Destructor"]["celdas"][1][0]][CATALOGO_NAVES["Destructor"]["celdas"][1][1]][CATALOGO_NAVES["Destructor"]["celdas"][1][2]]="#"
-                cubo[CATALOGO_NAVES["Destructor"]["celdas"][2][0]][CATALOGO_NAVES["Destructor"]["celdas"][2][1]][CATALOGO_NAVES["Destructor"]["celdas"][2][2]]="#"
-                flota.remove(CATALOGO_NAVES["Destructor"]["celdas"])
-                CATALOGO_NAVES["Destructor"]["estado"] = "hundida"
-
-#Chequeo Submarino
-        if celdas[i] in CATALOGO_NAVES["Submarino"]["celdas"]:
-            print("Impacto")
-            cubo[z][y][x]=X
-            if CATALOGO_NAVES["Submarino"]["celdas"][0]==X and CATALOGO_NAVES["Submarino"]["celdas"][1]==X  and CATALOGO_NAVES["Submarino"]["celdas"][2]==X:
-                print("Submarino hundido")
-                cubo[CATALOGO_NAVES["Submarino"]["celdas"][0][0]][CATALOGO_NAVES["Submarino"]["celdas"][0][1]][CATALOGO_NAVES["Submarino"]["celdas"][0][2]]="#"
-                cubo[CATALOGO_NAVES["Submarino"]["celdas"][1][0]][CATALOGO_NAVES["Submarino"]["celdas"][1][1]][CATALOGO_NAVES["Submarino"]["celdas"][1][2]]="#"
-                cubo[CATALOGO_NAVES["Submarino"]["celdas"][2][0]][CATALOGO_NAVES["Submarino"]["celdas"][2][1]][CATALOGO_NAVES["Submarino"]["celdas"][2][2]]="#"
-                flota.remove(CATALOGO_NAVES["Submarino"]["celdas"])
-                CATALOGO_NAVES["Submarino"]["estado"] = "hundida"
-
-#Chequeo Crucero
-        if celdas[i] in CATALOGO_NAVES["Crucero"]["celdas"]:
-            print("Impacto")
-            cubo[z][y][x]=X
-            if CATALOGO_NAVES["Crucero"]["celdas"][0]==X and CATALOGO_NAVES["Crucero"]["celdas"][1]==X and CATALOGO_NAVES["Crucero"]["celdas"][2]==X and CATALOGO_NAVES["Crucero"]["celdas"][3]==X:
-                print("Crucero hundido")
-                cubo[CATALOGO_NAVES["Crucero"]["celdas"][0][0]][CATALOGO_NAVES["Crucero"]["celdas"][0][1]][CATALOGO_NAVES["Crucero"]["celdas"][0][2]]="#"
-                cubo[CATALOGO_NAVES["Crucero"]["celdas"][1][0]][CATALOGO_NAVES["Crucero"]["celdas"][1][1]][CATALOGO_NAVES["Crucero"]["celdas"][1][2]]="#"
-                cubo[CATALOGO_NAVES["Crucero"]["celdas"][2][0]][CATALOGO_NAVES["Crucero"]["celdas"][2][1]][CATALOGO_NAVES["Crucero"]["celdas"][2][2]]="#"
-                cubo[CATALOGO_NAVES["Crucero"]["celdas"][3][0]][CATALOGO_NAVES["Crucero"]["celdas"][3][1]][CATALOGO_NAVES["Crucero"]["celdas"][3][2]]="#"
-                flota.remove(CATALOGO_NAVES["Crucero"]["celdas"])
-                CATALOGO_NAVES["Crucero"]["estado"] = "hundida"
-
-#Chequeo Poortaaviones
-        if celdas[i] in CATALOGO_NAVES["Portaaviones"]["celdas"]:
-            print("Impacto")
-            if cubo[z][y][x]=="X":
-                print("Impacto")
-                cubo[z][y][x]="x"
-            if CATALOGO_NAVES["Portaaviones"]["celdas"][0]==x and CATALOGO_NAVES["Portaaviones"]["celdas"][1]==x and CATALOGO_NAVES["Portaaviones"]["celdas"][2]==x and CATALOGO_NAVES["Portaaviones"]["celdas"][3]==x and CATALOGO_NAVES["Portaaviones"]["celdas"][4]==x:
-                print("Portaaviones hundido")
-                cubo[CATALOGO_NAVES["Portaaviones"]["celdas"][0][0]][CATALOGO_NAVES["Portaaviones"]["celdas"][0][1]][CATALOGO_NAVES["Portaaviones"]["celdas"][0][2]]="#"
-                cubo[CATALOGO_NAVES["Portaaviones"]["celdas"][1][0]][CATALOGO_NAVES["Portaaviones"]["celdas"][1][1]][CATALOGO_NAVES["Portaaviones"]["celdas"][1][2]]="#"
-                cubo[CATALOGO_NAVES["Portaaviones"]["celdas"][2][0]][CATALOGO_NAVES["Portaaviones"]["celdas"][2][1]][CATALOGO_NAVES["Portaaviones"]["celdas"][2][2]]="#"
-                cubo[CATALOGO_NAVES["Portaaviones"]["celdas"][3][0]][CATALOGO_NAVES["Portaaviones"]["celdas"][3][1]][CATALOGO_NAVES["Portaaviones"]["celdas"][3][2]]="#"
-                cubo[CATALOGO_NAVES["Portaaviones"]["celdas"][4][0]][CATALOGO_NAVES["Portaaviones"]["celdas"][4][1]][CATALOGO_NAVES["Portaaviones"]["celdas"][4][2]]="#"
-                flota.remove(CATALOGO_NAVES["Portaaviones"]["celdas"])
-                CATALOGO_NAVES["Portaaviones"]["estado"] = "hundida"
-
-#Chequeo estacion
-        if celdas[i] in CATALOGO_NAVES["Estacion"]["celdas"]:
-            print("Impacto")
-            cubo[z][y][x]="X"
-            if CATALOGO_NAVES["Estacion"]["celdas"][0]==X and CATALOGO_NAVES["Estacion"]["celdas"][1]==X and CATALOGO_NAVES["Estacion"]["celdas"][2]==X and CATALOGO_NAVES["Estacion"]["celdas"][3]==X and CATALOGO_NAVES["Estacion"]["celdas"][4]==X and CATALOGO_NAVES["Estacion"]["celdas"][5]==X and CATALOGO_NAVES["Estacion"]["celdas"][6]==X and CATALOGO_NAVES["Estacion"]["celdas"][7]==X:
-                print("Estacion hundida")
-                cubo[CATALOGO_NAVES["Estacion"]["celdas"][0][0]][CATALOGO_NAVES["Estacion"]["celdas"][0][1]][CATALOGO_NAVES["Estacion"]["celdas"][0][2]]="#"
-                cubo[CATALOGO_NAVES["Estacion"]["celdas"][1][0]][CATALOGO_NAVES["Estacion"]["celdas"][1][1]][CATALOGO_NAVES["Estacion"]["celdas"][1][2]]="#"
-                cubo[CATALOGO_NAVES["Estacion"]["celdas"][2][0]][CATALOGO_NAVES["Estacion"]["celdas"][2][1]][CATALOGO_NAVES["Estacion"]["celdas"][2][2]]="#"
-                cubo[CATALOGO_NAVES["Estacion"]["celdas"][3][0]][CATALOGO_NAVES["Estacion"]["celdas"][3][1]][CATALOGO_NAVES["Estacion"]["celdas"][3][2]]="#"
-                cubo[CATALOGO_NAVES["Estacion"]["celdas"][4][0]][CATALOGO_NAVES["Estacion"]["celdas"][4][1]][CATALOGO_NAVES["Estacion"]["celdas"][4][2]]="#"
-                cubo[CATALOGO_NAVES["Estacion"]["celdas"][5][0]][CATALOGO_NAVES["Estacion"]["celdas"][5][1]][CATALOGO_NAVES["Estacion"]["celdas"][5][2]]="#"
-                cubo[CATALOGO_NAVES["Estacion"]["celdas"][6][0]][CATALOGO_NAVES["Estacion"]["celdas"][6][1]][CATALOGO_NAVES["Estacion"]["celdas"][6][2]]="#"
-                cubo[CATALOGO_NAVES["Estacion"]["celdas"][7][0]][CATALOGO_NAVES["Estacion"]["celdas"][7][1]][CATALOGO_NAVES["Estacion"]["celdas"][7][2]]="#"
-                flota.remove(CATALOGO_NAVES["Estacion"]["celdas"])
-        
-
-        elif cubo[z][y][x] == "~":
-            cubo[z][y][x] = "o"
-            print("Agua")
-
-        else:
-            print("Esta casilla ya fue impactada o no contiene una nave.")
-
-    return cubo
-
-###############################################################################################
-def pedir_coordenada(mensaje, tam_cubo):
-    while True:
-        entrada = input(mensaje)
-        partes = entrada.split()
-
-        # 1. Verificamos que haya exactamente 3 elementos separados por espacios
-        if len(partes) != 3:
-            print("Error: Debes ingresar exactamente 3 números separados por espacios (ej: 1 2 3).")
-            continue
-
-        # 2. Intentamos convertir los 3 elementos a enteros
-        try:
-            tupla = tuple(int(x) for x in partes)
-        except ValueError:
-            print("Error: Solo se permiten números enteros separados por espacios.")
-            continue
-
-        # Si pasó todas las pruebas, devolvemos la tupla limpia
-        return tupla
-
-###############################################################################################
-
-
-def ubicacion_manual(cubo, CATALOGO_NAVES, semilla=None):
-    flota_1 = []
-
-    # Coloco Fragata
-    for i in range(CATALOGO_NAVES["Fragata"]["cantidad"]):
-        print("Colocando Fragata (2x1) numero: " + str(i+1))
-        colocada = False
-
-        while colocada == False:
-            tupla_inicio = pedir_coordenada("Ingresá 3 dígitos separados por espacios de la coordenada 'DESDE': ", len(cubo))
-            valido1 = tablero.punto_valido(tupla_inicio, len(cubo))
-
-            tupla_final = pedir_coordenada("Ingresá 3 dígitos separados por espacios de la coordenada 'HASTA': ", len(cubo))
-            valido2 = tablero.punto_valido(tupla_final, len(cubo))
-
-            if valido1 == False or valido2 == False:
-                print("Coordenadas inválidas. Deben ser enteros entre 1 y " + str(len(cubo)))
-
-            else:
-                resultado, mensaje = colocar(cubo, CATALOGO_NAVES["Fragata"], tupla_inicio, tupla_final)
-
-                if resultado != False:
-                    colocada = True
-                    cubo = resultado
-                    flota_1.append(CATALOGO_NAVES["Fragata"]["celdas"])
-                    print("Fragata colocada")
-                else:
-                    print(mensaje)
-
-    # Coloco Destructor
-    for i in range(CATALOGO_NAVES["Destructor"]["cantidad"]):
-        print("Colocando Destructor (3x1) numero: " + str(i+1))
-        colocada = False
-
-        while colocada == False:
-            tupla_inicio = pedir_coordenada("Ingresá 3 dígitos separados por espacios de la coordenada 'DESDE': ", len(cubo))
-            valido1 = tablero.punto_valido(tupla_inicio, len(cubo))
-
-            tupla_final = pedir_coordenada("Ingresá 3 dígitos separados por espacios de la coordenada 'HASTA': ", len(cubo))
-            valido2 = tablero.punto_valido(tupla_final, len(cubo))
-
-            if valido1 == False or valido2 == False:
-                print("Coordenadas inválidas. Deben ser enteros entre 1 y " + str(len(cubo)))
-
-            else:
-                resultado, mensaje = colocar(cubo, CATALOGO_NAVES["Destructor"], tupla_inicio, tupla_final)
-
-                if resultado != False:
-                    colocada = True
-                    cubo = resultado
-                    flota_1.append(CATALOGO_NAVES["Destructor"]["celdas"])
-                    print("Destructor colocada")
-                else:
-                    print(mensaje)
-
-    # Coloco Submarino
-    for i in range(CATALOGO_NAVES["Submarino"]["cantidad"]):
-        print("Colocando Submarino (3x1) numero: " + str(i+1))
-        colocada = False
-
-        while colocada == False:
-            tupla_inicio = pedir_coordenada("Ingresá 3 dígitos separados por espacios de la coordenada 'DESDE': ", len(cubo))
-            valido1 = tablero.punto_valido(tupla_inicio, len(cubo))
-
-            tupla_final = pedir_coordenada("Ingresá 3 dígitos separados por espacios de la coordenada 'HASTA': ", len(cubo))
-            valido2 = tablero.punto_valido(tupla_final, len(cubo))
-
-            if valido1 == False or valido2 == False:
-                print("Coordenadas inválidas. Deben ser enteros entre 1 y " + str(len(cubo)))
-
-            else:
-                resultado, mensaje = colocar(cubo, CATALOGO_NAVES["Submarino"], tupla_inicio, tupla_final)
-
-                if resultado != False:
-                    colocada = True
-                    cubo = resultado
-                    flota_1.append(CATALOGO_NAVES["Submarino"]["celdas"])
-                    print("Submarino colocada")
-                else:
-                    print(mensaje)
-
-    # Coloco Crucero
-    for i in range(CATALOGO_NAVES["Crucero"]["cantidad"]):
-        print("Colocando Crucero (4x1) numero: " + str(i+1))
-        colocada = False
-
-        while colocada == False:
-            tupla_inicio = pedir_coordenada("Ingresá 3 dígitos separados por espacios de la coordenada 'DESDE': ", len(cubo))
-            valido1 = tablero.punto_valido(tupla_inicio, len(cubo))
-
-            tupla_final = pedir_coordenada("Ingresá 3 dígitos separados por espacios de la coordenada 'HASTA': ", len(cubo))
-            valido2 = tablero.punto_valido(tupla_final, len(cubo))
-
-            if valido1 == False or valido2 == False:
-                print("Coordenadas inválidas. Deben ser enteros entre 1 y " + str(len(cubo)))
-
-            else:
-                resultado, mensaje = colocar(cubo, CATALOGO_NAVES["Crucero"], tupla_inicio, tupla_final)
-
-                if resultado != False:
-                    colocada = True
-                    cubo = resultado
-                    flota_1.append(CATALOGO_NAVES["Crucero"]["celdas"])
-                    print("Crucero colocada")
-                else:
-                    print(mensaje)
-
-    # Coloco Portaaviones
-    for i in range(CATALOGO_NAVES["Portaaviones"]["cantidad"]):
-        print("Colocando Portaaviones (5x1) numero: " + str(i+1))
-        colocada = False
-
-        while colocada == False:
-            tupla_inicio = pedir_coordenada("Ingresá 3 dígitos separados por espacios de la coordenada 'DESDE': ", len(cubo))
-            valido1 = tablero.punto_valido(tupla_inicio, len(cubo))
-
-            tupla_final = pedir_coordenada("Ingresá 3 dígitos separados por espacios de la coordenada 'HASTA': ", len(cubo))
-            valido2 = tablero.punto_valido(tupla_final, len(cubo))
-
-            if valido1 == False or valido2 == False:
-                print("Coordenadas inválidas. Deben ser enteros entre 1 y " + str(len(cubo)))
-
-            else:
-                resultado, mensaje = colocar(cubo, CATALOGO_NAVES["Portaaviones"], tupla_inicio, tupla_final)
-
-                if resultado != False:
-                    colocada = True
-                    cubo = resultado
-                    flota_1.append(CATALOGO_NAVES["Portaaviones"]["celdas"])
-                    print("Portaaviones colocada")
-                else:
-                    print(mensaje)
-
-    # Coloco Estacion
-    for i in range(CATALOGO_NAVES["Estacion"]["cantidad"]):
-        print("Colocando Estacion (2x2x2) numero: " + str(i+1))
-        colocada = False
-
-        while colocada == False:
-            tupla_inicio = pedir_coordenada("Ingresá 3 dígitos separados por espacios de la coordenada 'DESDE': ", len(cubo))
-            valido1 = tablero.punto_valido(tupla_inicio, len(cubo))
-
-            tupla_final = pedir_coordenada("Ingresá 3 dígitos separados por espacios de la coordenada 'HASTA': ", len(cubo))
-            valido2 = tablero.punto_valido(tupla_final, len(cubo))
-
-            if valido1 == False or valido2 == False:
-                print("Coordenadas inválidas. Deben ser enteros entre 1 y " + str(len(cubo)))
-
-            else:
-                resultado, mensaje = colocar(cubo, CATALOGO_NAVES["Estacion"], tupla_inicio, tupla_final)
-
-                if resultado != False:
-                    colocada = True
-                    cubo = resultado
-                    flota_1.append(CATALOGO_NAVES["Estacion"]["celdas"])
-                    print("Estacion colocada")
-                else:
-                    print(mensaje)
-
-    return cubo, flota_1
-
-
-
-
-def ubicacion_automatica(cubo, CATALOGO_NAVES, semilla=None):
-    flota_2 = []
-
-    # Coloco Fragata
-    for i in range(CATALOGO_NAVES["Fragata"]["cantidad"]):
-        print("Colocando Fragata (2x1) numero: " + str(i+1))
-        colocada = False
-
-        while colocada == False:
-            lista_inicio = []
-            coordenada1 = random.randint(1, len(cubo))
-            lista_inicio.append(coordenada1)
-            coordenada2 = random.randint(1, len(cubo))
-            lista_inicio.append(coordenada2)
-            coordenada3 = random.randint(1, len(cubo))
-            lista_inicio.append(coordenada3)
-            tupla_inicio = tuple(lista_inicio)
-
-            lista_final = []
-            coordenada4 = random.choice([coordenada1, coordenada1+1, coordenada1-1])
-
-            if coordenada4 != coordenada1:
-                coordenada5 = coordenada2
-                coordenada6 = coordenada3
-
-            if coordenada4 == coordenada1:
-                coordenada5 = random.choice([coordenada2, coordenada2+1, coordenada2-1])
-
-                if coordenada5 != coordenada2:
-                    coordenada6 = coordenada3
-
-                if coordenada5 == coordenada2:
-                    coordenada6 = random.choice([coordenada3+1, coordenada3-1])
-
-            lista_final.append(coordenada4)
-            lista_final.append(coordenada5)
-            lista_final.append(coordenada6)
-            tupla_final = tuple(lista_final)
-
-            valido1 = tablero.punto_valido(tupla_inicio, len(cubo))
-            valido2 = tablero.punto_valido(tupla_final, len(cubo))
-
-            if valido1 == False or valido2 == False:
-                print("Coordenadas inválidas. Deben ser enteros entre 1 y " + str(len(cubo)))
-
-            else:
-                resultado, mensaje = colocar(cubo, CATALOGO_NAVES["Fragata"], tupla_inicio, tupla_final)
-
-                if resultado != False:
-                    colocada = True
-                    cubo = resultado
-                    flota_2.append(CATALOGO_NAVES["Fragata"]["celdas"])
-                    print("Fragata colocada")
-                else:
-                    print(mensaje)
-
-    # Coloco Destructor
-    for i in range(CATALOGO_NAVES["Destructor"]["cantidad"]):
-        print("Colocando Destructor (3x1) numero: " + str(i+1))
-        colocada = False
-
-        while colocada == False:
-            lista_inicio = []
-            coordenada1 = random.randint(1, len(cubo))
-            lista_inicio.append(coordenada1)
-            coordenada2 = random.randint(1, len(cubo))
-            lista_inicio.append(coordenada2)
-            coordenada3 = random.randint(1, len(cubo))
-            lista_inicio.append(coordenada3)
-            tupla_inicio = tuple(lista_inicio)
-
-            lista_final = []
-            coordenada4 = random.choice([coordenada1, coordenada1+2, coordenada1-2])
-
-            if coordenada4 != coordenada1:
-                coordenada5 = coordenada2
-                coordenada6 = coordenada3
-
-            if coordenada4 == coordenada1:
-                coordenada5 = random.choice([coordenada2, coordenada2+2, coordenada2-2])
-
-                if coordenada5 != coordenada2:
-                    coordenada6 = coordenada3
-
-                if coordenada5 == coordenada2:
-                    coordenada6 = random.choice([coordenada3+2, coordenada3-2])
-
-            lista_final.append(coordenada4)
-            lista_final.append(coordenada5)
-            lista_final.append(coordenada6)
-            tupla_final = tuple(lista_final)
-
-            valido1 = tablero.punto_valido(tupla_inicio, len(cubo))
-            valido2 = tablero.punto_valido(tupla_final, len(cubo))
-
-            if valido1 == False or valido2 == False:
-                print("Coordenadas inválidas. Deben ser enteros entre 1 y " + str(len(cubo)))
-
-            else:
-                resultado, mensaje = colocar(cubo, CATALOGO_NAVES["Destructor"], tupla_inicio, tupla_final)
-
-                if resultado != False:
-                    colocada = True
-                    cubo = resultado
-                    flota_2.append(CATALOGO_NAVES["Destructor"]["celdas"])
-                    print("Destructor colocada")
-                else:
-                    print(mensaje)
-
-    # Coloco Submarino
-    for i in range(CATALOGO_NAVES["Submarino"]["cantidad"]):
-        print("Colocando Submarino (3x1) numero: " + str(i+1))
-        colocada = False
-
-        while colocada == False:
-            lista_inicio = []
-            coordenada1 = random.randint(1, len(cubo))
-            lista_inicio.append(coordenada1)
-            coordenada2 = random.randint(1, len(cubo))
-            lista_inicio.append(coordenada2)
-            coordenada3 = random.randint(int(len(cubo)/2), 8)
-            lista_inicio.append(coordenada3)
-            tupla_inicio = tuple(lista_inicio)
-
-            lista_final = []
-            coordenada4 = random.choice([coordenada1, coordenada1+2, coordenada1-2])
-
-            if coordenada4 != coordenada1:
-                coordenada5 = coordenada2
-                coordenada6 = coordenada3
-
-            if coordenada4 == coordenada1:
-                coordenada5 = random.choice([coordenada2, coordenada2+2, coordenada2-2])
-
-                if coordenada5 != coordenada2:
-                    coordenada6 = coordenada3
-
-                if coordenada5 == coordenada2:
-                    coordenada6 = random.choice([coordenada3+2, coordenada3-2])
-
-            lista_final.append(coordenada4)
-            lista_final.append(coordenada5)
-            lista_final.append(coordenada6)
-            tupla_final = tuple(lista_final)
-
-            valido1 = tablero.punto_valido(tupla_inicio, len(cubo))
-            valido2 = tablero.punto_valido(tupla_final, len(cubo))
-
-            if valido1 == False or valido2 == False:
-                print("Coordenadas inválidas. Deben ser enteros entre 1 y " + str(len(cubo)))
-
-            else:
-                resultado, mensaje = colocar(cubo, CATALOGO_NAVES["Submarino"], tupla_inicio, tupla_final)
-
-                if resultado != False:
-                    colocada = True
-                    cubo = resultado
-                    flota_2.append(CATALOGO_NAVES["Submarino"]["celdas"])
-                    print("Submarino colocada")
-                else:
-                    print(mensaje)
-
-    # Coloco Crucero
-    for i in range(CATALOGO_NAVES["Crucero"]["cantidad"]):
-        print("Colocando Crucero (4x1) numero: " + str(i+1))
-        colocada = False
-
-        while colocada == False:
-            lista_inicio = []
-            coordenada1 = random.randint(1, len(cubo))
-            lista_inicio.append(coordenada1)
-            coordenada2 = random.randint(1, len(cubo))
-            lista_inicio.append(coordenada2)
-            coordenada3 = random.randint(1, len(cubo))
-            lista_inicio.append(coordenada3)
-            tupla_inicio = tuple(lista_inicio)
-
-            lista_final = []
-            coordenada4 = random.choice([coordenada1, coordenada1+3, coordenada1-3])
-
-            if coordenada4 != coordenada1:
-                coordenada5 = coordenada2
-                coordenada6 = coordenada3
-
-            if coordenada4 == coordenada1:
-                coordenada5 = random.choice([coordenada2, coordenada2+3, coordenada2-3])
-
-                if coordenada5 != coordenada2:
-                    coordenada6 = coordenada3
-
-                if coordenada5 == coordenada2:
-                    coordenada6 = random.choice([coordenada3+3, coordenada3-3])
-
-            lista_final.append(coordenada4)
-            lista_final.append(coordenada5)
-            lista_final.append(coordenada6)
-            tupla_final = tuple(lista_final)
-
-            valido1 = tablero.punto_valido(tupla_inicio, len(cubo))
-            valido2 = tablero.punto_valido(tupla_final, len(cubo))
-
-            if valido1 == False or valido2 == False:
-                print("Coordenadas inválidas. Deben ser enteros entre 1 y " + str(len(cubo)))
-
-            else:
-                resultado, mensaje = colocar(cubo, CATALOGO_NAVES["Crucero"], tupla_inicio, tupla_final)
-
-                if resultado != False:
-                    colocada = True
-                    cubo = resultado
-                    flota_2.append(CATALOGO_NAVES["Crucero"]["celdas"])
-                    print("Crucero colocada")
-                else:
-                    print(mensaje)
-
-    # Coloco Portaaviones
-    for i in range(CATALOGO_NAVES["Portaaviones"]["cantidad"]):
-        print("Colocando Portaaviones (5x1) numero: " + str(i+1))
-        colocada = False
-
-        while colocada == False:
-            lista_inicio = []
-            coordenada1 = random.randint(1, len(cubo))
-            lista_inicio.append(coordenada1)
-            coordenada2 = random.randint(1, len(cubo))
-            lista_inicio.append(coordenada2)
-            coordenada3 = random.randint(1, len(cubo))
-            lista_inicio.append(coordenada3)
-            tupla_inicio = tuple(lista_inicio)
-
-            lista_final = []
-            coordenada4 = random.choice([coordenada1, coordenada1+4, coordenada1-4])
-
-            if coordenada4 != coordenada1:
-                coordenada5 = coordenada2
-                coordenada6 = coordenada3
-
-            if coordenada4 == coordenada1:
-                coordenada5 = random.choice([coordenada2, coordenada2+4, coordenada2-4])
-
-                if coordenada5 != coordenada2:
-                    coordenada6 = coordenada3
-
-                if coordenada5 == coordenada2:
-                    coordenada6 = random.choice([coordenada3+4, coordenada3-4])
-
-            lista_final.append(coordenada4)
-            lista_final.append(coordenada5)
-            lista_final.append(coordenada6)
-            tupla_final = tuple(lista_final)
-
-            valido1 = tablero.punto_valido(tupla_inicio, len(cubo))
-            valido2 = tablero.punto_valido(tupla_final, len(cubo))
-
-            if valido1 == False or valido2 == False:
-                print("Coordenadas inválidas. Deben ser enteros entre 1 y " + str(len(cubo)))
-
-            else:
-                resultado, mensaje = colocar(cubo, CATALOGO_NAVES["Portaaviones"], tupla_inicio, tupla_final)
-
-                if resultado != False:
-                    colocada = True
-                    cubo = resultado
-                    flota_2.append(CATALOGO_NAVES["Portaaviones"]["celdas"])
-                    print("Portaaviones colocada")
-                else:
-                    print(mensaje)
-
-    # Coloco Estacion
-    for i in range(CATALOGO_NAVES["Estacion"]["cantidad"]):
-        print("Colocando Estacion (2x2x2) numero: " + str(i+1))
-        colocada = False
-
-        while colocada == False:
-            lista_inicio = []
-            coordenada1 = random.randint(2, len(cubo)-1)
-            lista_inicio.append(coordenada1)
-            coordenada2 = random.randint(2, len(cubo)-1)
-            lista_inicio.append(coordenada2)
-            coordenada3 = random.randint(2, len(cubo)-1)
-            lista_inicio.append(coordenada3)
-            tupla_inicio = tuple(lista_inicio)
-
-            lista_final = []
-            coordenada4 = random.choice([coordenada1+1, coordenada1-1])
-            coordenada5 = random.choice([coordenada2+1, coordenada2-1])
-            coordenada6 = random.choice([coordenada3+1, coordenada3-1])
-
-            lista_final.append(coordenada4)
-            lista_final.append(coordenada5)
-            lista_final.append(coordenada6)
-            tupla_final = tuple(lista_final)
-
-            valido1 = tablero.punto_valido(tupla_inicio, len(cubo))
-            valido2 = tablero.punto_valido(tupla_final, len(cubo))
-
-            if valido1 == False or valido2 == False:
-                print("Coordenadas inválidas. Deben ser enteros entre 1 y " + str(len(cubo)))
-
-            else:
-                resultado, mensaje = colocar(cubo, CATALOGO_NAVES["Estacion"], tupla_inicio, tupla_final)
-
-                if resultado != False:
-                    colocada = True
-                    cubo = resultado
-                    flota_2.append(CATALOGO_NAVES["Estacion"]["celdas"])
-                    print("Estacion colocada")
-                else:
-                    print(mensaje)
-
-    return cubo, flota_2
-
-
-def posicion_valida(cubo, celdas):
+    Lanza:
+        FlotaError si los puntos no estan alineados en un solo eje.
     """
-    Recibe el cubo y una lista de coordenadas de la nave.
-    Devuelve True si las celdas están libres y no tocan otras naves.
+    z1, x1, y1 = punto_desde
+    z2, x2, y2 = punto_hasta
+
+    ejes_distintos = sum(1 for a, b in ((z1, z2), (x1, x2), (y1, y2)) if a != b)
+    if ejes_distintos > 1:
+        raise FlotaError("Las celdas de la nave deben estar en linea recta.")
+
+    if z1 != z2:
+        paso = 1 if z2 > z1 else -1
+        return [(z, x1, y1) for z in range(z1, z2 + paso, paso)]
+
+    if x1 != x2:
+        paso = 1 if x2 > x1 else -1
+        return [(z1, x, y1) for x in range(x1, x2 + paso, paso)]
+
+    if y1 != y2:
+        paso = 1 if y2 > y1 else -1
+        return [(z1, x1, y) for y in range(y1, y2 + paso, paso)]
+
+    return [(z1, x1, y1)]
+
+
+def _celdas_del_bloque(punto_desde, punto_hasta):
+    """Calcula las 8 celdas del bloque 2x2x2 de la estacion orbital.
+
+    Recibe:
+        punto_desde, punto_hasta: dos esquinas opuestas del bloque.
+
+    Devuelve:
+        Lista de 8 tuplas (z, x, y).
+
+    Lanza:
+        FlotaError si los puntos no forman un bloque de 2x2x2.
     """
+    z1, x1, y1 = punto_desde
+    z2, x2, y2 = punto_hasta
+
+    if abs(z1 - z2) != 1 or abs(x1 - x2) != 1 or abs(y1 - y2) != 1:
+        raise FlotaError("La estacion debe ocupar un bloque de 2x2x2.")
+
+    return [(z, x, y) for z in (z1, z2) for x in (x1, x2) for y in (y1, y2)]
+
+
+def _validar_regla(letra, celdas, n):
+    """Valida la restriccion de ubicacion propia del tipo de nave.
+
+    Recibe:
+        letra: letra de la nave.
+        celdas: celdas que ocuparia.
+        n: tamanio del cubo.
+
+    Lanza:
+        FlotaError si no cumple su restriccion.
+    """
+    reglas = CATALOGO_NAVES[letra]["reglas"]
+    mitad = n / 2
+
+    if reglas == "submarino" and any(z > mitad for z, x, y in celdas):
+        raise FlotaError("El submarino solo puede ubicarse en la mitad inferior de z.")
+
+    if reglas == "crucero" and any(z == 1 or z == n for z, x, y in celdas):
+        raise FlotaError("El crucero no puede ocupar z = 1 ni z = N.")
+
+    if reglas == "portaaviones" and any(z <= mitad for z, x, y in celdas):
+        raise FlotaError("El portaaviones solo puede ubicarse en la mitad superior de z.")
+
+    if reglas == "estacion" and any(
+        z in (1, n) or x in (1, n) or y in (1, n) for z, x, y in celdas
+    ):
+        raise FlotaError("La estacion no puede tocar ninguna cara exterior del cubo.")
+
+
+def _validar_lugar(cubo, celdas, n):
+    """Valida que las celdas esten libres y separadas de otras naves.
+
+    Entre dos naves debe quedar al menos una celda libre en cualquier
+    direccion, incluidas las diagonales.
+
+    Recibe:
+        cubo, celdas (de la nave a ubicar), n (tamanio del cubo).
+
+    Lanza:
+        FlotaError si alguna celda esta fuera del cubo, ocupada, o
+        pegada a otra nave.
+    """
+    celdas_nave = set(celdas)
+
+    for z, x, y in celdas:
+        if not tablero.punto_valido((z, x, y), n):
+            raise FlotaError("La nave no puede salir del cubo.")
+
+        if cubo[z - 1][y - 1][x - 1] != tablero.AGUA_SIN_EXPLORAR:
+            raise FlotaError("Ya hay otra nave ocupando esa posicion.")
+
+        for vz in (z - 1, z, z + 1):
+            for vx in (x - 1, x, x + 1):
+                for vy in (y - 1, y, y + 1):
+                    vecino = (vz, vx, vy)
+                    if vecino in celdas_nave:
+                        continue
+                    if tablero.punto_valido(vecino, n):
+                        if cubo[vz - 1][vy - 1][vx - 1] != tablero.AGUA_SIN_EXPLORAR:
+                            raise FlotaError(
+                                "Debe quedar al menos una celda libre entre naves."
+                            )
+
+
+def ubicar_nave(cubo, flota, letra, punto_desde, punto_hasta):
+    """Ubica una nave en el cubo segun su letra y el tramo que ocupa.
+
+    Recibe:
+        cubo: cubo de juego (lista de listas de listas).
+        flota: lista de naves ya ubicadas (lista de diccionarios).
+        letra: letra de la nave a ubicar (F, D, S, C, P o E).
+        punto_desde, punto_hasta: extremos del tramo (z, x, y). Para la
+            estacion orbital son dos esquinas opuestas del bloque 2x2x2.
+
+    Devuelve:
+        (cubo, flota) actualizados, con la nueva nave agregada a la
+        flota como un diccionario {"letra", "celdas", "impactos",
+        "hundida"}.
+
+    Lanza:
+        FlotaError si la letra no existe, si ya se ubicaron todas las
+        naves de ese tipo, o si el tramo no cumple alguna regla de
+        ubicacion (tamanio, alineacion, bordes o separacion).
+    """
+    if letra not in CATALOGO_NAVES:
+        raise FlotaError("Nave invalida: debe ser F, D, S, C, P o E.")
+
+    datos_nave = CATALOGO_NAVES[letra]
+    ya_ubicadas = sum(1 for nave in flota if nave["letra"] == letra)
+
+    if ya_ubicadas >= datos_nave["cantidad"]:
+        raise FlotaError(f"Ya se ubicaron todas las naves {datos_nave['nombre']}.")
 
     n = len(cubo)
 
-    for z, y, x in celdas:
+    if letra == "E":
+        celdas = _celdas_del_bloque(punto_desde, punto_hasta)
+    else:
+        celdas = _celdas_del_tramo(punto_desde, punto_hasta)
+        if len(celdas) != datos_nave["tamanio"]:
+            raise FlotaError(f"La nave debe ocupar {datos_nave['tamanio']} celdas.")
 
-        if z < 0 or z >= n or y < 0 or y >= n or x < 0 or x >= n:
-            return False
+    _validar_regla(letra, celdas, n)
+    _validar_lugar(cubo, celdas, n)
 
-        if cubo[z][y][x] != "~":
-            return False
+    for z, x, y in celdas:
+        cubo[z - 1][y - 1][x - 1] = tablero.NAVE_OCULTA
 
-        for vecino_z in range(z - 1, z + 2):
-            for vecino_y in range(y - 1, y + 2):
-                for vecino_x in range(x - 1, x + 2):
-
-                    if vecino_z >= 0 and vecino_z < n:
-                        if vecino_y >= 0 and vecino_y < n:
-                            if vecino_x >= 0 and vecino_x < n:
-
-                                if cubo[vecino_z][vecino_y][vecino_x] == "?":
-                                    if (vecino_z, vecino_y, vecino_x) not in celdas:
-                                        return False
-
-    return True
-
-
-# Catalogo de naves
-
-CATALOGO_NAVES_1 = {
-    "Fragata": {
-        "nombre": "Fragata",
-        "letra": "F",
-        "tamanio": 2,
-        "cantidad": 3,
-        "celdas": [],
-        "estado": "sano",
-        "reglas": False
-    },
-    "Destructor": {
-        "nombre": "Destructor",
-        "letra": "D",
-        "tamanio": 3,
-        "cantidad": 2,
-        "celdas": [],
-        "estado": "sano",
-        "reglas": False
-    },
-    "Submarino": {
-        "nombre": "Submarino",
-        "letra": "S",
-        "tamanio": 3,
-        "cantidad": 2,
-        "celdas": [],
-        "estado": "sano",
-        "reglas": "submarino"
-    },
-    "Crucero": {
-        "nombre": "Crucero",
-        "letra": "C",
-        "tamanio": 4,
-        "cantidad": 1,
-        "celdas": [],
-        "estado": "sano",
-        "reglas": "crucero"
-    },
-    "Portaaviones": {
-        "nombre": "Portaaviones",
-        "letra": "P",
-        "tamanio": 5,
-        "cantidad": 1,
-        "celdas": [],
-        "estado": "sano",
-        "reglas": "portaaviones"
-    },
-    "Estacion": {
-        "nombre": "Estacion",
-        "letra": "E",
-        "tamanio": 8,
-        "cantidad": 1,
-        "celdas": [],
-        "estado": "sano",
-        "reglas": "estacion"
+    nave = {
+        "letra": letra,
+        "celdas": set(celdas),
+        "impactos": set(),
+        "hundida": False
     }
-}
+    flota = flota + [nave]
 
-CATALOGO_NAVES_2 = {
-    "Fragata": {
-        "nombre": "Fragata",
-        "letra": "F",
-        "tamanio": 2,
-        "cantidad": 3,
-        "celdas": [],
-        "estado": "sano",
-        "reglas": False
-    },
-    "Destructor": {
-        "nombre": "Destructor",
-        "letra": "D",
-        "tamanio": 3,
-        "cantidad": 2,
-        "celdas": [],
-        "estado": "sano",
-        "reglas": False
-    },
-    "Submarino": {
-        "nombre": "Submarino",
-        "letra": "S",
-        "tamanio": 3,
-        "cantidad": 2,
-        "celdas": [],
-        "estado": "sano",
-        "reglas": "submarino"
-    },
-    "Crucero": {
-        "nombre": "Crucero",
-        "letra": "C",
-        "tamanio": 4,
-        "cantidad": 1,
-        "celdas": [],
-        "estado": "sano",
-        "reglas": "crucero"
-    },
-    "Portaaviones": {
-        "nombre": "Portaaviones",
-        "letra": "P",
-        "tamanio": 5,
-        "cantidad": 1,
-        "celdas": [],
-        "estado": "sano",
-        "reglas": "portaaviones"
-    },
-    "Estacion": {
-        "nombre": "Estacion",
-        "letra": "E",
-        "tamanio": 8,
-        "cantidad": 1,
-        "celdas": [],
-        "estado": "sano",
-        "reglas": "estacion"
-    }
-}
+    return cubo, flota
+
+
+def _tramo_aleatorio(generador, letra, datos_nave, n):
+    """Genera un tramo (o bloque) al azar para intentar ubicar una nave.
+
+    No garantiza que el tramo sea valido: ubicacion_automatica reintenta
+    las veces que haga falta si ubicar_nave lo rechaza.
+    """
+    if letra == "E":
+        punto_desde = (
+            generador.randint(1, n),
+            generador.randint(1, n),
+            generador.randint(1, n)
+        )
+        punto_hasta = tuple(
+            coordenada + generador.choice((1, -1)) for coordenada in punto_desde
+        )
+        return punto_desde, punto_hasta
+
+    tamanio = datos_nave["tamanio"]
+    eje = generador.choice(("z", "x", "y"))
+    sentido = generador.choice((1, -1))
+    z, x, y = (
+        generador.randint(1, n),
+        generador.randint(1, n),
+        generador.randint(1, n)
+    )
+    punto_desde = (z, x, y)
+
+    if eje == "z":
+        punto_hasta = (z + sentido * (tamanio - 1), x, y)
+    elif eje == "x":
+        punto_hasta = (z, x + sentido * (tamanio - 1), y)
+    else:
+        punto_hasta = (z, x, y + sentido * (tamanio - 1))
+
+    return punto_desde, punto_hasta
+
+
+def ubicacion_automatica(cubo, catalogo, semilla=None):
+    """Ubica toda la flota de forma aleatoria, respetando las reglas.
+
+    Recibe:
+        cubo: cubo de juego.
+        catalogo: catalogo de naves (ver CATALOGO_NAVES).
+        semilla: semilla del generador aleatorio, para que la ubicacion
+            sea reproducible. None usa aleatoriedad real.
+
+    Devuelve:
+        (cubo, flota) con todas las naves del catalogo ubicadas.
+
+    Lanza:
+        FlotaError si, tras varios intentos, no se encuentra lugar
+        para alguna nave (el cubo es demasiado chico para la flota).
+    """
+    generador = random.Random(semilla)
+    n = len(cubo)
+    flota = []
+
+    for letra, datos_nave in catalogo.items():
+        for _ in range(datos_nave["cantidad"]):
+            ubicada = False
+
+            for _ in range(INTENTOS_MAXIMOS):
+                punto_desde, punto_hasta = _tramo_aleatorio(
+                    generador, letra, datos_nave, n
+                )
+                try:
+                    cubo, flota = ubicar_nave(
+                        cubo, flota, letra, punto_desde, punto_hasta
+                    )
+                    ubicada = True
+                    break
+                except FlotaError:
+                    continue
+
+            if not ubicada:
+                raise FlotaError(
+                    f"No se encontro lugar para la nave {datos_nave['nombre']}."
+                )
+
+    return cubo, flota
