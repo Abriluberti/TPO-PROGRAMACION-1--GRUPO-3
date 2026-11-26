@@ -100,19 +100,25 @@ def _validar_regla(letra, celdas, n):
     reglas = CATALOGO_NAVES[letra]["reglas"]
     mitad = n / 2
 
-    if reglas == "submarino" and any(z > mitad for z, x, y in celdas):
-        raise FlotaError("El submarino solo puede ubicarse en la mitad inferior de z.")
+    if reglas == "submarino":
+        for z, x, y in celdas:
+            if z > mitad:
+                raise FlotaError("El submarino solo puede ubicarse en la mitad inferior de z.")
 
-    if reglas == "crucero" and any(z == 1 or z == n for z, x, y in celdas):
-        raise FlotaError("El crucero no puede ocupar z = 1 ni z = N.")
+    if reglas == "crucero":
+        for z, x, y in celdas:
+            if z == 1 or z == n:
+                raise FlotaError("El crucero no puede ocupar z = 1 ni z = N.")
 
-    if reglas == "portaaviones" and any(z <= mitad for z, x, y in celdas):
-        raise FlotaError("El portaaviones solo puede ubicarse en la mitad superior de z.")
+    if reglas == "portaaviones":
+        for z, x, y in celdas:
+            if z <= mitad:
+                raise FlotaError("El portaaviones solo puede ubicarse en la mitad superior de z.")
 
-    if reglas == "estacion" and any(
-        z in (1, n) or x in (1, n) or y in (1, n) for z, x, y in celdas
-    ):
-        raise FlotaError("La estacion no puede tocar ninguna cara exterior del cubo.")
+    if reglas == "estacion":
+        for z, x, y in celdas:
+            if z == 1 or z == n or x == 1 or x == n or y == 1 or y == n:
+                raise FlotaError("La estacion no puede tocar ninguna cara exterior del cubo.")
 
 
 def _validar_lugar(cubo, celdas, n):

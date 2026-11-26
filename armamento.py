@@ -11,7 +11,7 @@ def _validar_punto(punto, n):
     Recibe: punto (tupla o lista), n (tamaño del cubo).
     Devuelve: True si es un punto valido de 3 coordenadas entre 1 y n.
     """
-    if not isinstance(punto, (tuple, list)) or len(punto) != 3:
+    if (type(punto) != tuple and type(punto) != list) or len(punto) != 3:
         return False
     return tablero.punto_valido(tuple(punto), n)
 
@@ -119,7 +119,9 @@ def onda_expansiva(cubo, punto, eje=None, flota=None, radio=RADIO_ONDA):
     if not tablero.punto_valido(punto, len(cubo)):
         return set()
 
-    if not isinstance(radio, int) or isinstance(radio, bool) or radio < 0:
+    # type() en vez de isinstance(): asi True/False (que en Python son
+    # tecnicamente int) tambien quedan afuera, type(True) es bool, no int
+    if type(radio) != int or radio < 0:
         return set()
 
     return _propagar_onda(

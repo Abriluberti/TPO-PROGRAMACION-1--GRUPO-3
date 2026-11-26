@@ -142,7 +142,12 @@ def _pedir_tramo(n_max):
 
         valores = [int(valor) for valor in coincidencia.groups()]
 
-        if not all(1 <= valor <= n_max for valor in valores):
+        todas_validas = True
+        for valor in valores:
+            if valor < 1 or valor > n_max:
+                todas_validas = False
+
+        if not todas_validas:
             print(f"Las coordenadas deben estar entre 1 y {n_max}.")
             continue
 
@@ -330,7 +335,12 @@ def hay_ganador(estado):
         id_rival = 3 - id_jugador
         flota_rival = estado["jugadores"][id_rival]["flota"]
 
-        if flota_rival and all(nave["hundida"] for nave in flota_rival):
+        todas_hundidas = True
+        for nave in flota_rival:
+            if not nave["hundida"]:
+                todas_hundidas = False
+
+        if flota_rival and todas_hundidas:
             return estado["jugadores"][id_jugador]["nombre"]
 
     return None
@@ -374,7 +384,7 @@ def turno_maquina(estado):
     oponente = estado["jugadores"][rival]
 
     dificultad = estado.get("dificultad", "facil")
-    if isinstance(dificultad, (list, tuple)):
+    if type(dificultad) == list or type(dificultad) == tuple:
         dificultad = dificultad[actual - 1]
 
     # si queda una celda de portaaviones esperando el segundo impacto hay
@@ -493,7 +503,7 @@ def _ejecutar_sonar(estado, objetivo, eje):
         print("Para el sonar debe elegir el eje z, x o y.")
         return estado
 
-    if not isinstance(objetivo, (tuple, list)) or len(objetivo) != 3:
+    if (type(objetivo) != tuple and type(objetivo) != list) or len(objetivo) != 3:
         print("El objetivo no es válido.")
         return estado
 
@@ -561,17 +571,18 @@ def ejecutar_turno(estado, jugada):
         print("Para el láser debe elegir el eje x o y.")
         return estado
 
-    if not isinstance(objetivo, (tuple, list)) or len(objetivo) != 3:
+    if (type(objetivo) != tuple and type(objetivo) != list) or len(objetivo) != 3:
         print("El objetivo no es válido.")
         return estado
 
-    if any(
-        not isinstance(coordenada, int)
-        or isinstance(coordenada, bool)
-        or coordenada < 1
-        or coordenada > estado["n_max"]
-        for coordenada in objetivo
-    ):
+    # type() en vez de isinstance(): asi tambien se descartan True/False,
+    # que en Python son tecnicamente numeros pero type(True) es bool, no int
+    coordenada_invalida = False
+    for coordenada in objetivo:
+        if type(coordenada) != int or coordenada < 1 or coordenada > estado["n_max"]:
+            coordenada_invalida = True
+
+    if coordenada_invalida:
         print("Las coordenadas están fuera del cubo.")
         return estado
 
@@ -654,7 +665,9 @@ def ejecutar_turno(estado, jugada):
                         print("Impacto parcial en el portaaviones: necesita un segundo impacto en esa celda.")
                         break
 
-                    nave["impactos_parciales"].discard(punto)
+                    # ya sabemos que esta (se chequeo arriba), por eso remove
+                    # y no hace falta nada mas especial para sacarla
+                    nave["impactos_parciales"].remove(punto)
 
                 ya_estaba_impactada = punto in nave["impactos"]
                 nave["impactos"].add(punto)
