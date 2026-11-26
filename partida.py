@@ -144,20 +144,20 @@ def nueva_partida_1v1(configuracion):
     # y de ahi en adelante todo lo que esperaba una lista de naves rompia.
     if modo_jugador_1 == "1":
         cubo_jugador_1, flota_jugador_1 = flota.ubicacion_manual(
-            cubo_jugador_1, flota.CATALOGO_NAVES, 1
+            cubo_jugador_1, flota.CATALOGO_NAVES_1, 1
         )
     else:
         cubo_jugador_1, flota_jugador_1 = flota.ubicacion_automatica(
-            cubo_jugador_1, flota.CATALOGO_NAVES, 1
+            cubo_jugador_1, flota.CATALOGO_NAVES_1, 1
         )
 
     if modo_jugador_2 == "1":
         cubo_jugador_2, flota_jugador_2 = flota.ubicacion_manual(
-            cubo_jugador_2, flota.CATALOGO_NAVES, 2
+            cubo_jugador_2, flota.CATALOGO_NAVES_2, 2
         )
     else:
         cubo_jugador_2, flota_jugador_2 = flota.ubicacion_automatica(
-            cubo_jugador_2, flota.CATALOGO_NAVES, 2
+            cubo_jugador_2, flota.CATALOGO_NAVES_2, 2
         )
 
     estado = {
