@@ -46,7 +46,18 @@ def ejecutar_menu_principal():
         accion = rutas_menu.get(opcion)
 
         if accion != None:
-            continuar = accion()
+            try:
+                continuar = accion()
+            except (tablero.ErrorTablero, flota.FlotaError, registro.RegistroError) as error:
+                # errores propios ya pensados, pero que se nos pudieron
+                # haber escapado sin atrapar en algun camino puntual
+                print(f"Ocurrio un problema y se cancelo la operacion: {error}")
+                continuar = True
+            except Exception as error:
+                # ultima red de seguridad: ningun error no previsto debe
+                # cortar el programa, se avisa y se vuelve al menu
+                print(f"Ocurrio un error inesperado: {error}")
+                continuar = True
 
 
 def pedir_arma():
@@ -365,6 +376,16 @@ def turno_maquina(estado):
     dificultad = estado.get("dificultad", "facil")
     if isinstance(dificultad, (list, tuple)):
         dificultad = dificultad[actual - 1]
+
+    # si queda una celda de portaaviones esperando el segundo impacto hay
+    # que rematarla si o si: esa celda ya figura en jugador["disparos"]
+    # (por el primer impacto) asi que el sorteo al azar de mas abajo
+    # nunca la vuelve a elegir sola, y la nave no se termina de hundir
+    for nave in oponente["flota"]:
+        if nave["letra"] == "P" and nave["impactos_parciales"]:
+            objetivo = next(iter(nave["impactos_parciales"]))
+            print(f"La máquina remata el segundo impacto del portaaviones a {objetivo}.")
+            return ejecutar_turno(estado, {"arma": "T", "objetivo": objetivo, "eje": None})
 
     if dificultad == "dificil":
         for nave in oponente["flota"]:
@@ -959,6 +980,40 @@ def _ejecutar_recorrido_demo(jugador):
     print("Primeras celdas:", recorrido[:5])
 
 
+def _reportar_fin_de_partida(estado):
+    """Muestra el resumen, actualiza el ranking y ofrece exportar el historial.
+
+    Recibe: estado (ya con ganador definido).
+    Devuelve: None. Si registro.py falla (archivo danado, etc.) se
+        avisa por consola, no corta el programa.
+    """
+    try:
+        print(registro.resumen_final(estado["historial"], estado["ganador"]))
+
+        nombres_jugadores = [jugador["nombre"] for jugador in estado["jugadores"].values()]
+        registro.actualizar_ranking(nombres_jugadores, estado["ganador"])
+
+        ranking = registro.obtener_ranking()
+        if ranking:
+            print("Ranking:")
+            for nombre, ganadas, jugadas in ranking:
+                print(f"  {nombre}: {ganadas} ganadas de {jugadas} jugadas")
+    except registro.RegistroError as error:
+        print(f"No se pudo actualizar el registro: {error}")
+
+    nombre_exportacion = input(
+        "Exportar historial a CSV (nombre, vacío para omitir): "
+    ).strip()
+
+    if nombre_exportacion:
+        try:
+            ruta = registro.exportar_historial(estado["historial"], nombre_exportacion)
+        except registro.RegistroError as error:
+            print(f"No se pudo exportar: {error}")
+        else:
+            print(f"Historial exportado a {ruta}")
+
+
 def _guardar_y_salir(estado):
     """Pide un nombre y guarda la partida con registro.guardar_partida.
 
@@ -1028,4 +1083,5 @@ def jugar_partida(estado):
         estado = partida.ejecutar_turno(estado, jugada)
 
     print("Ganador:", estado["ganador"])
+    partida._reportar_fin_de_partida(estado)
     return estado

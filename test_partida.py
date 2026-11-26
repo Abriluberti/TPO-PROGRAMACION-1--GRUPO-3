@@ -199,3 +199,24 @@ def test_turno_maquina_dificil_remata_nave_impactada():
 
     assert celda in nave["impactos"]
     assert len(nave["impactos"]) >= 1
+
+
+def test_turno_maquina_remata_impacto_parcial_de_portaaviones():
+    """Regresion: una celda de portaaviones con un primer impacto ya
+    queda en jugador['disparos'], asi que el sorteo al azar de
+    turno_maquina nunca la volvia a elegir sola y la partida quedaba
+    sin poder terminar (incluso en dificultad facil)."""
+    estado = _estado_vacio()
+    estado["modo"] = "vs_maquina"
+    estado["dificultad"] = "facil"
+    estado["turno_actual"] = 2
+
+    portaaviones = next(n for n in estado["jugadores"][1]["flota"] if n["letra"] == "P")
+    celda = sorted(portaaviones["celdas"])[0]
+    portaaviones["impactos_parciales"].add(celda)
+    estado["jugadores"][2]["disparos"].add(celda)
+
+    estado = partida.turno_maquina(estado)
+
+    assert celda in portaaviones["impactos"]
+    assert portaaviones["impactos_parciales"] == set()

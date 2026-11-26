@@ -7,6 +7,7 @@ __pycache__/
 datos/partidas/*
 datos/pruebas/*
 datos/exportaciones/*
+datos/ranking.json
 !datos/partidas/.gitkeep
 !datos/pruebas/.gitkeep
 !datos/exportaciones/.gitkeep
