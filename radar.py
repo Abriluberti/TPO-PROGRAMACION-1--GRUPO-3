@@ -1,12 +1,19 @@
 import time
 
+import tablero
 
-AGUA_SIN_EXPLORAR = "~"
-NAVE_OCULTA = "?"
-AGUA_MARCADA = "A"
-IMPACTO = "I"
-HUNDIDO = "#"
-DETECTADO_SONAR = "S"
+# se reusan los mismos estados que tablero.py (antes radar.py definia
+# los suyos propios con otros caracteres para IMPACTO y DETECTADO_SONAR;
+# como partida.py marca el cubo real con los de tablero.py, buscar_*/
+# mapa_probabilidad nunca iban a encontrar un impacto o un sonar
+# detectado en una partida real, solo en los cubos armados a mano de
+# los tests de este modulo)
+AGUA_SIN_EXPLORAR = tablero.AGUA_SIN_EXPLORAR
+NAVE_OCULTA = tablero.NAVE_OCULTA
+AGUA_MARCADA = tablero.AGUA_MARCADA
+IMPACTO = tablero.IMPACTO
+HUNDIDO = tablero.HUNDIDO
+DETECTADO_SONAR = tablero.DETECTADO_SONAR
 
 VECINOS_ORTOGONALES = (
     (1, 0, 0), (-1, 0, 0),
