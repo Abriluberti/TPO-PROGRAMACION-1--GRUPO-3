@@ -4,7 +4,7 @@ import flota
 import partida
 
 
-def _estado_vacio(n=8):
+def estado_vacio(n=8):
     """Arma un estado 1v1 minimo, sin pasar por los input() de partida.py."""
     cubo_1 = tablero.crear_cubo(n)
     cubo_2 = tablero.crear_cubo(n)
@@ -31,12 +31,12 @@ def _estado_vacio(n=8):
 
 
 def test_hay_ganador_nadie_al_empezar():
-    estado = _estado_vacio()
+    estado = estado_vacio()
     assert partida.hay_ganador(estado) is None
 
 
 def test_hay_ganador_cuando_se_hunde_toda_la_flota_rival():
-    estado = _estado_vacio()
+    estado = estado_vacio()
 
     for nave in estado["jugadores"][2]["flota"]:
         nave["impactos"] = set(nave["celdas"])
@@ -46,7 +46,7 @@ def test_hay_ganador_cuando_se_hunde_toda_la_flota_rival():
 
 
 def test_es_turno_maquina():
-    estado = _estado_vacio()
+    estado = estado_vacio()
     estado["modo"] = "vs_maquina"
 
     estado["turno_actual"] = 1
@@ -61,7 +61,7 @@ def test_es_turno_maquina():
 
 
 def test_ejecutar_turno_impacto_directo():
-    estado = _estado_vacio()
+    estado = estado_vacio()
     nave = estado["jugadores"][2]["flota"][0]
     celda = sorted(nave["celdas"])[0]
 
@@ -74,7 +74,7 @@ def test_ejecutar_turno_impacto_directo():
 
 
 def test_ejecutar_turno_no_deja_repetir_disparo():
-    estado = _estado_vacio()
+    estado = estado_vacio()
     objetivo = (1, 1, 1)
 
     estado = partida.ejecutar_turno(estado, {"arma": "T", "objetivo": objetivo})
@@ -91,7 +91,7 @@ def test_ejecutar_turno_no_deja_repetir_disparo():
 
 
 def test_ejecutar_turno_submarino_inmune_al_laser():
-    estado = _estado_vacio()
+    estado = estado_vacio()
     submarino = next(n for n in estado["jugadores"][2]["flota"] if n["letra"] == "S")
     celda = sorted(submarino["celdas"])[0]
 
@@ -103,7 +103,7 @@ def test_ejecutar_turno_submarino_inmune_al_laser():
 
 
 def test_portaaviones_necesita_dos_impactos_por_celda():
-    estado = _estado_vacio()
+    estado = estado_vacio()
     portaaviones = next(n for n in estado["jugadores"][2]["flota"] if n["letra"] == "P")
     celda = sorted(portaaviones["celdas"])[0]
 
@@ -121,7 +121,7 @@ def test_portaaviones_necesita_dos_impactos_por_celda():
 
 
 def test_portaaviones_tercer_disparo_a_celda_confirmada_se_rechaza():
-    estado = _estado_vacio()
+    estado = estado_vacio()
     portaaviones = next(n for n in estado["jugadores"][2]["flota"] if n["letra"] == "P")
     celda = sorted(portaaviones["celdas"])[0]
 
@@ -137,7 +137,7 @@ def test_portaaviones_tercer_disparo_a_celda_confirmada_se_rechaza():
 
 
 def test_portaaviones_se_hunde_tras_doble_impacto_en_todas_sus_celdas():
-    estado = _estado_vacio()
+    estado = estado_vacio()
     portaaviones = next(n for n in estado["jugadores"][2]["flota"] if n["letra"] == "P")
 
     for celda in sorted(portaaviones["celdas"]):
@@ -150,7 +150,7 @@ def test_portaaviones_se_hunde_tras_doble_impacto_en_todas_sus_celdas():
 
 
 def test_estado_para_guardar_y_cargar_es_equivalente():
-    estado = _estado_vacio()
+    estado = estado_vacio()
     estado["turno_actual"] = 2
     estado["jugadores"][1]["disparos"].add((1, 1, 1))
 
@@ -186,7 +186,7 @@ def test_crear_jugador_automatico_no_pide_nada():
 
 
 def test_turno_maquina_dificil_remata_nave_impactada():
-    estado = _estado_vacio()
+    estado = estado_vacio()
     estado["modo"] = "vs_maquina"
     estado["dificultad"] = "dificil"
     estado["turno_actual"] = 2
@@ -206,7 +206,7 @@ def test_turno_maquina_remata_impacto_parcial_de_portaaviones():
     queda en jugador['disparos'], asi que el sorteo al azar de
     turno_maquina nunca la volvia a elegir sola y la partida quedaba
     sin poder terminar (incluso en dificultad facil)."""
-    estado = _estado_vacio()
+    estado = estado_vacio()
     estado["modo"] = "vs_maquina"
     estado["dificultad"] = "facil"
     estado["turno_actual"] = 2
