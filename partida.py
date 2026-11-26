@@ -202,7 +202,9 @@ def _crear_jugador(n_max, nombre, automatico):
     cubo = tablero.crear_cubo(n_max)
 
     if automatico:
-        cubo, flota_jugador = flota.ubicacion_automatica(cubo, flota.CATALOGO_NAVES)
+        # ubicacion_automatica modifica el cubo en el lugar y devuelve
+        # solo la flota (ubicar_nave, en cambio, devuelve (cubo, flota))
+        flota_jugador = flota.ubicacion_automatica(cubo, flota.CATALOGO_NAVES)
     else:
         modo = pedir_opcion_menu(
             ["1", "2"],
@@ -213,7 +215,7 @@ def _crear_jugador(n_max, nombre, automatico):
         if modo == "1":
             cubo, flota_jugador = _ubicar_flota_manual(cubo, n_max)
         else:
-            cubo, flota_jugador = flota.ubicacion_automatica(cubo, flota.CATALOGO_NAVES)
+            flota_jugador = flota.ubicacion_automatica(cubo, flota.CATALOGO_NAVES)
 
     return {
         "nombre": nombre,

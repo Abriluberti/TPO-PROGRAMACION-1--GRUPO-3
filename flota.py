@@ -252,7 +252,8 @@ def ubicacion_automatica(cubo, catalogo, semilla=None):
             sea reproducible. None usa aleatoriedad real.
 
     Devuelve:
-        (cubo, flota) con todas las naves del catalogo ubicadas.
+        La flota ubicada (lista de naves). El cubo se modifica en el
+        lugar (misma lista que se recibió), no hace falta reasignarlo.
 
     Lanza:
         FlotaError si, tras varios intentos, no se encuentra lugar
@@ -284,4 +285,4 @@ def ubicacion_automatica(cubo, catalogo, semilla=None):
                     f"No se encontro lugar para la nave {datos_nave['nombre']}."
                 )
 
-    return cubo, flota
+    return flota

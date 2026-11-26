@@ -121,7 +121,7 @@ def test_estacion_bloque_2x2x2_no_toca_bordes():
 def test_ubicacion_automatica_coloca_toda_la_flota():
     cubo = tablero.crear_cubo(8)
 
-    cubo, flota_jugador = flota.ubicacion_automatica(cubo, flota.CATALOGO_NAVES, semilla=123)
+    flota_jugador = flota.ubicacion_automatica(cubo, flota.CATALOGO_NAVES, semilla=123)
 
     assert len(flota_jugador) == sum(
         datos["cantidad"] for datos in flota.CATALOGO_NAVES.values()
@@ -135,8 +135,8 @@ def test_ubicacion_automatica_reproducible_con_semilla():
     cubo_1 = tablero.crear_cubo(8)
     cubo_2 = tablero.crear_cubo(8)
 
-    _, flota_1 = flota.ubicacion_automatica(cubo_1, flota.CATALOGO_NAVES, semilla=42)
-    _, flota_2 = flota.ubicacion_automatica(cubo_2, flota.CATALOGO_NAVES, semilla=42)
+    flota_1 = flota.ubicacion_automatica(cubo_1, flota.CATALOGO_NAVES, semilla=42)
+    flota_2 = flota.ubicacion_automatica(cubo_2, flota.CATALOGO_NAVES, semilla=42)
 
     assert flota_1 == flota_2
 
