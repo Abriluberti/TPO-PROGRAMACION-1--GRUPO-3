@@ -3,8 +3,8 @@ import json
 import os
 import re
 
-def estadisticas(historial): 
-     """Cuenta las jugadas de cada jugador.
+def estadisticas(historial):
+    """Cuenta las jugadas de cada jugador.
 
     Recibe: historial (lista de jugadas).
     Devuelve: diccionario {jugador: {"disparos", "impactos", "aguas"}}.
@@ -15,8 +15,17 @@ def estadisticas(historial):
         jugador = accion["jugador"]
         if jugador not in resultado:
             resultado[jugador] = {"disparos": 0, "impactos": 0, "aguas": 0}
+
         resultado[jugador]["disparos"] += 1
-    return resultado 
+
+        # antes solo se contaban los disparos, impactos y aguas quedaban
+        # siempre en 0 porque no se miraba accion["resultado"]
+        if accion.get("resultado") == "impacto":
+            resultado[jugador]["impactos"] += 1
+        elif accion.get("resultado") == "agua":
+            resultado[jugador]["aguas"] += 1
+
+    return resultado
 
 
 def resumen_final(historial, ganador):
@@ -45,9 +54,11 @@ RUTA_RANKING = os.path.join("datos", "ranking.json")
 
 
 class RegistroError(Exception):
+    """Error general del registro."""
 
 
 class PartidaNoEncontradaError(RegistroError):
+    """Partida no encontrada."""
 
 
 def validar_nombre(nombre):

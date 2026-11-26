@@ -17,6 +17,20 @@ def limpiar():
         archivo.write("{}")
 
 
+def historial_de_ejemplo():
+    """Historial de 3 jugadas que usan varios tests de este archivo.
+
+    Ana dispara 2 veces (1 impacto, 1 agua) y Luis 1 vez con un
+    resultado que no es ni impacto ni agua (ej: tiro invalido), para
+    poder distinguir en los asserts que esos dos no se cuentan.
+    """
+    return [
+        {"jugador": "Ana", "arma": "T", "objetivo": (4, 2, 7), "resultado": "impacto"},
+        {"jugador": "Luis", "arma": "T", "objetivo": (1, 1, 1), "resultado": "invalido"},
+        {"jugador": "Ana", "arma": "T", "objetivo": (5, 5, 5), "resultado": "agua"},
+    ]
+
+
 
 def test_registro_agrega_las_jugadas():
     historial = historial_de_ejemplo()
