@@ -246,6 +246,34 @@ def _tramo_aleatorio(generador, letra, datos_nave, n):
     return punto_desde, punto_hasta
 
 
+def _ubicar_automatica_una_nave(cubo, flota, generador, letra, datos_nave, n):
+    """Intenta ubicar una nave de un tipo en un tramo al azar, reintentando.
+
+    Recibe:
+        cubo, flota: estado actual.
+        generador: random.Random ya inicializado (con o sin semilla).
+        letra: letra de la nave a ubicar.
+        datos_nave: entrada del catalogo para esa letra.
+        n: tamanio del cubo.
+
+    Devuelve:
+        (cubo, flota) con la nueva nave agregada.
+
+    Lanza:
+        FlotaError si no se encuentra un lugar valido en INTENTOS_MAXIMOS
+        intentos (el cubo esta demasiado lleno o es muy chico).
+    """
+    for _ in range(INTENTOS_MAXIMOS):
+        punto_desde, punto_hasta = _tramo_aleatorio(generador, letra, datos_nave, n)
+
+        try:
+            return ubicar_nave(cubo, flota, letra, punto_desde, punto_hasta)
+        except FlotaError:
+            continue
+
+    raise FlotaError(f"No se encontro lugar para la nave {datos_nave['nombre']}.")
+
+
 def ubicacion_automatica(cubo, catalogo, semilla=None):
     """Ubica toda la flota de forma aleatoria, respetando las reglas.
 
@@ -267,34 +295,52 @@ def ubicacion_automatica(cubo, catalogo, semilla=None):
     n = len(cubo)
     flota = []
 
-    # se ubican primero las naves mas grandes (mas dificiles de encajar):
-    # si se dejan para el final, cuando ya no queda tanto lugar libre, el
-    # sorteo al azar fallaba mucho mas seguido (hasta 1 de cada 10 veces
-    # para la estacion en un cubo de 8)
-    orden_de_ubicacion = sorted(
-        catalogo.items(), key=lambda item: item[1]["tamanio"], reverse=True
-    )
+    # Se ubican primero las naves mas grandes y restringidas, y las mas
+    # chicas al final: si se ubican en el orden del catalogo (Fragata
+    # primero), para cuando le toca a la Estacion ya no queda lugar
+    # facil y el sorteo al azar fallaba seguido (hasta 1 de cada 10
+    # veces en un cubo de 8).
 
-    for letra, datos_nave in orden_de_ubicacion:
-        for _ in range(datos_nave["cantidad"]):
-            ubicada = False
+    # Estacion orbital (1 bloque de 2x2x2, no toca ninguna cara del cubo)
+    datos_estacion = catalogo["E"]
+    for _ in range(datos_estacion["cantidad"]):
+        cubo, flota = _ubicar_automatica_una_nave(
+            cubo, flota, generador, "E", datos_estacion, n
+        )
 
-            for _ in range(INTENTOS_MAXIMOS):
-                punto_desde, punto_hasta = _tramo_aleatorio(
-                    generador, letra, datos_nave, n
-                )
-                try:
-                    cubo, flota = ubicar_nave(
-                        cubo, flota, letra, punto_desde, punto_hasta
-                    )
-                    ubicada = True
-                    break
-                except FlotaError:
-                    continue
+    # Portaaviones (1 nave de 5 celdas, solo en la mitad superior de z)
+    datos_portaaviones = catalogo["P"]
+    for _ in range(datos_portaaviones["cantidad"]):
+        cubo, flota = _ubicar_automatica_una_nave(
+            cubo, flota, generador, "P", datos_portaaviones, n
+        )
 
-            if not ubicada:
-                raise FlotaError(
-                    f"No se encontro lugar para la nave {datos_nave['nombre']}."
-                )
+    # Crucero (1 nave de 4 celdas, no puede ocupar z = 1 ni z = N)
+    datos_crucero = catalogo["C"]
+    for _ in range(datos_crucero["cantidad"]):
+        cubo, flota = _ubicar_automatica_una_nave(
+            cubo, flota, generador, "C", datos_crucero, n
+        )
+
+    # Destructor (2 naves de 3 celdas, sin restriccion)
+    datos_destructor = catalogo["D"]
+    for _ in range(datos_destructor["cantidad"]):
+        cubo, flota = _ubicar_automatica_una_nave(
+            cubo, flota, generador, "D", datos_destructor, n
+        )
+
+    # Submarino (2 naves de 3 celdas, solo en la mitad inferior de z)
+    datos_submarino = catalogo["S"]
+    for _ in range(datos_submarino["cantidad"]):
+        cubo, flota = _ubicar_automatica_una_nave(
+            cubo, flota, generador, "S", datos_submarino, n
+        )
+
+    # Fragata (3 naves de 2 celdas, sin restriccion)
+    datos_fragata = catalogo["F"]
+    for _ in range(datos_fragata["cantidad"]):
+        cubo, flota = _ubicar_automatica_una_nave(
+            cubo, flota, generador, "F", datos_fragata, n
+        )
 
     return flota
