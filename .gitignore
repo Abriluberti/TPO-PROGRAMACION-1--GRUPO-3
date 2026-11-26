@@ -2,3 +2,11 @@ venv/
 __pycache__/
 *.pyc
 .idea/
+
+# partidas guardadas y datos de prueba generados en tiempo de ejecucion
+datos/partidas/*
+datos/pruebas/*
+datos/exportaciones/*
+!datos/partidas/.gitkeep
+!datos/pruebas/.gitkeep
+!datos/exportaciones/.gitkeep

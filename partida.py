@@ -185,6 +185,45 @@ def _ubicar_flota_manual(cubo, n_max):
     return cubo, flota_jugador
 
 
+def _crear_jugador(n_max, nombre, automatico):
+    """Crea el cubo, la flota y el estado inicial de un jugador.
+
+    Recibe:
+        n_max: tamaño del cubo.
+        nombre: nombre a mostrar del jugador.
+        automatico: True si es la máquina (su flota se ubica siempre
+            de forma automática, sin preguntar nada); False si es un
+            humano (se le pregunta el modo de ubicación).
+
+    Devuelve:
+        Diccionario con el estado de ese jugador (nombre, cubo, flota,
+        munición y disparos).
+    """
+    cubo = tablero.crear_cubo(n_max)
+
+    if automatico:
+        cubo, flota_jugador = flota.ubicacion_automatica(cubo, flota.CATALOGO_NAVES)
+    else:
+        modo = pedir_opcion_menu(
+            ["1", "2"],
+            f"Ubicacion {nombre} (Manual: 1, Automatica: 2): ",
+            "El modo de ubicacion es invalido."
+        )
+
+        if modo == "1":
+            cubo, flota_jugador = _ubicar_flota_manual(cubo, n_max)
+        else:
+            cubo, flota_jugador = flota.ubicacion_automatica(cubo, flota.CATALOGO_NAVES)
+
+    return {
+        "nombre": nombre,
+        "cubo": cubo,
+        "flota": flota_jugador,
+        "municion": armamento.municion_inicial(),
+        "disparos": set()
+    }
+
+
 def nueva_partida_1v1(configuracion):
     """
     Crea el estado inicial de una partida entre dos jugadores.
@@ -197,63 +236,22 @@ def nueva_partida_1v1(configuracion):
     """
     n_max = configuracion.get("n", 8)
 
-    cubo_jugador_1 = tablero.crear_cubo(n_max)
-    cubo_jugador_2 = tablero.crear_cubo(n_max)
-
-    modo_jugador_1 = pedir_opcion_menu(
-        ["1", "2"],
-        "Ubicacion jugador 1 (Manual: 1, Automatica: 2): ",
-        "El modo de ubicacion es invalido."
-    )
-
-    modo_jugador_2 = pedir_opcion_menu(
-        ["1", "2"],
-        "Ubicacion jugador 2 (Manual: 1, Automatica: 2): ",
-        "El modo de ubicacion es invalido."
-    )
-
-    if modo_jugador_1 == "1":
-        cubo_jugador_1, flota_jugador_1 = _ubicar_flota_manual(cubo_jugador_1, n_max)
-    else:
-        cubo_jugador_1, flota_jugador_1 = flota.ubicacion_automatica(
-            cubo_jugador_1, flota.CATALOGO_NAVES
-        )
-
-    if modo_jugador_2 == "1":
-        cubo_jugador_2, flota_jugador_2 = _ubicar_flota_manual(cubo_jugador_2, n_max)
-    else:
-        cubo_jugador_2, flota_jugador_2 = flota.ubicacion_automatica(
-            cubo_jugador_2, flota.CATALOGO_NAVES
-        )
-
-    estado = {
+    return {
         "n_max": n_max,
         "turno_actual": 1,
         "modo": "1v1",
         "jugadores": {
-            1: {
-                "nombre": "Jugador 1",
-                "cubo": cubo_jugador_1,
-                "flota": flota_jugador_1,
-                "municion": armamento.municion_inicial(),
-                "disparos": set()
-            },
-            2: {
-                "nombre": "Jugador 2",
-                "cubo": cubo_jugador_2,
-                "flota": flota_jugador_2,
-                "municion": armamento.municion_inicial(),
-                "disparos": set()
-            }
+            1: _crear_jugador(n_max, "Jugador 1", automatico=False),
+            2: _crear_jugador(n_max, "Jugador 2", automatico=False)
         },
         "historial": [],
         "ganador": None
     }
 
-    return estado
-
 def nueva_partida_vs_maquina(configuracion, dificultad="facil"):
     """Crea el estado inicial de una partida contra la máquina.
+
+    La flota de la máquina se ubica siempre de forma automática.
 
     Recibe:
         configuracion: configuración de la partida.
@@ -262,17 +260,26 @@ def nueva_partida_vs_maquina(configuracion, dificultad="facil"):
     Devuelve:
         El estado inicial de la partida.
     """
-    estado = nueva_partida_1v1(configuracion)
+    n_max = configuracion.get("n", 8)
 
-    estado["modo"] = "vs_maquina"
-    estado["dificultad"] = dificultad
-    estado["jugadores"][2]["nombre"] = "Máquina"
-
-    return estado
+    return {
+        "n_max": n_max,
+        "turno_actual": 1,
+        "modo": "vs_maquina",
+        "dificultad": dificultad,
+        "jugadores": {
+            1: _crear_jugador(n_max, "Jugador 1", automatico=False),
+            2: _crear_jugador(n_max, "Máquina", automatico=True)
+        },
+        "historial": [],
+        "ganador": None
+    }
 
 
 def nueva_partida_maquina_vs_maquina(configuracion, dificultades=("facil", "facil")):
     """Crea el estado inicial de una partida entre dos máquinas.
+
+    Las flotas de ambas máquinas se ubican siempre de forma automática.
 
     Recibe:
         configuracion: configuración de la partida.
@@ -281,14 +288,20 @@ def nueva_partida_maquina_vs_maquina(configuracion, dificultades=("facil", "faci
     Devuelve:
         El estado inicial de la partida.
     """
-    estado = nueva_partida_1v1(configuracion)
+    n_max = configuracion.get("n", 8)
 
-    estado["modo"] = "maquina_vs_maquina"
-    estado["dificultad"] = tuple(dificultades)
-    estado["jugadores"][1]["nombre"] = "Máquina 1"
-    estado["jugadores"][2]["nombre"] = "Máquina 2"
-
-    return estado
+    return {
+        "n_max": n_max,
+        "turno_actual": 1,
+        "modo": "maquina_vs_maquina",
+        "dificultad": tuple(dificultades),
+        "jugadores": {
+            1: _crear_jugador(n_max, "Máquina 1", automatico=True),
+            2: _crear_jugador(n_max, "Máquina 2", automatico=True)
+        },
+        "historial": [],
+        "ganador": None
+    }
 
 
 def hay_ganador(estado):
