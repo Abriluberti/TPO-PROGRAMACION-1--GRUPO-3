@@ -382,16 +382,38 @@ def recorrer_por_filas(cubo):
     return recorrido
 
 def distancia_entre_puntos(punto1, punto2):
+    """Calcula la distancia Manhattan entre dos puntos del cubo.
+
+    Recibe:
+        punto1, punto2: tuplas (z, x, y) de igual longitud.
+
+    Devuelve:
+        La suma de las diferencias absolutas de cada coordenada.
+    """
     distancia = 0
-    for coordenada in (punto1 - punto2):
-        distancia += abs(coordenada)
+    for coordenada1, coordenada2 in zip(punto1, punto2):
+        distancia += abs(coordenada1 - coordenada2)
 
     return distancia
 
 
 def son_puntos_en_linea_recta(punto1, punto2):
-    if len(punto1) != len(punto2): return false
+    """Indica si dos puntos difieren en a lo sumo una coordenada.
+
+    Recibe:
+        punto1, punto2: tuplas (z, x, y).
+
+    Devuelve:
+        True si los puntos pueden formar una nave recta (varian en un
+        solo eje, o son el mismo punto); False si tienen distinta
+        longitud o varian en mas de un eje.
+    """
+    if len(punto1) != len(punto2):
+        return False
+
     variacion_de_coordenada = 0
-    for coordenada in (0, len(punto1)):
-        if punto1[coordenada] != punto2[coordenada]: ++variacion_de_coordenada
+    for coordenada in range(len(punto1)):
+        if punto1[coordenada] != punto2[coordenada]:
+            variacion_de_coordenada += 1
+
     return variacion_de_coordenada < 2
