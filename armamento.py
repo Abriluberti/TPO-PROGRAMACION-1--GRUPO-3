@@ -2,6 +2,20 @@
 import tablero
 
 
+def _validar_punto(punto, n):
+    """Valida que un punto tenga 3 coordenadas dentro del cubo.
+
+    A diferencia de tablero.punto_valido, no asume que punto ya tiene
+    3 elementos (no lanza ValueError si tiene otra longitud).
+
+    Recibe: punto (tupla o lista), n (tamaño del cubo).
+    Devuelve: True si es un punto valido de 3 coordenadas entre 1 y n.
+    """
+    if not isinstance(punto, (tuple, list)) or len(punto) != 3:
+        return False
+    return tablero.punto_valido(tuple(punto), n)
+
+
 def _vecinos(punto):
     """Devuelve los seis vecinos ortogonales de una celda."""
     z, x, y = punto
