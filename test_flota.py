@@ -146,3 +146,15 @@ def test_ubicacion_automatica_cubo_chico_no_cuelga():
 
     with pytest.raises(flota.FlotaError):
         flota.ubicacion_automatica(cubo, flota.CATALOGO_NAVES, semilla=1)
+
+
+def test_ubicacion_automatica_es_estable_en_cubo_default():
+    """Regresion: antes de ubicar primero las naves grandes, esto
+    fallaba (FlotaError, casi siempre por la Estacion) hasta 1 de
+    cada 10 semillas en un cubo de 8."""
+    for semilla in range(100):
+        cubo = tablero.crear_cubo(8)
+        flota_jugador = flota.ubicacion_automatica(cubo, flota.CATALOGO_NAVES, semilla=semilla)
+        assert len(flota_jugador) == sum(
+            datos["cantidad"] for datos in flota.CATALOGO_NAVES.values()
+        )
