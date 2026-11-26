@@ -1,3 +1,4 @@
+import time
 
 
 AGUA_SIN_EXPLORAR = "~"
@@ -39,6 +40,7 @@ def buscar_lineal(cubo, estado_buscado=NAVE_OCULTA):
         No lanza excepciones propias. Si el cubo no es una matriz anidada
         N x N x N, Python puede lanzar TypeError o IndexError.
     """
+    inicio = time.perf_counter()
     n = len(cubo)
 
     puntos = []
@@ -52,6 +54,8 @@ def buscar_lineal(cubo, estado_buscado=NAVE_OCULTA):
 
     metricas = {
         "comparaciones": comparaciones,
+        "tiempo_ms": (time.perf_counter() - inicio) * 1000,
+        "profundidad_max": 0,
     }
     return puntos, metricas
 
@@ -92,7 +96,8 @@ def buscar_optimizada(cubo, estado_buscado=NAVE_OCULTA):
     """
     if estado_buscado not in ESTADOS_DE_NAVE:
         raise ValueError("buscar_optimizada solo busca celdas de nave.")
- 
+
+    inicio = time.perf_counter()
     n = len(cubo)
  
     puntos = []
@@ -135,9 +140,10 @@ def buscar_optimizada(cubo, estado_buscado=NAVE_OCULTA):
                             pendientes.append((vz, vx, vy))
  
     puntos.sort()
- 
+
     metricas = {
         "comparaciones": comparaciones,
+        "tiempo_ms": (time.perf_counter() - inicio) * 1000,
         "profundidad_max": 0,
     }
     return puntos, metricas
@@ -191,14 +197,15 @@ def sonar_plano(cubo, eje, valor):
             fuera del rango 1 a N.
     """
     n = len(cubo)
- 
+
     if eje not in PLANOS:
         raise ValueError("El eje debe ser z, x o y.")
     if not 1 <= valor <= n:
         raise ValueError("El valor del plano debe estar entre 1 y N.")
- 
+
+    inicio = time.perf_counter()
     celdas = PLANOS[eje](n, valor)
- 
+
     contactos = []
     comparaciones = 0
     for z, x, y in celdas:
@@ -208,6 +215,7 @@ def sonar_plano(cubo, eje, valor):
  
     metricas = {
         "comparaciones": comparaciones,
+        "tiempo_ms": (time.perf_counter() - inicio) * 1000,
         "profundidad_max": 0,
     }
     return contactos, metricas
@@ -225,8 +233,19 @@ def buscar_recursiva(cubo, estado_buscado=NAVE_OCULTA, z=0):
     Devuelve:
         Una tupla (puntos, metricas).
         puntos: lista de tuplas (z, x, y), con valores de 1 a N.
-        metricas: diccionario con "comparaciones" (int) y "profundidad_max" (int).
+        metricas: diccionario con "comparaciones" (int), "tiempo_ms"
+            (float) y "profundidad_max" (int).
     """
+    # el tiempo se mide una sola vez aca, en la llamada de afuera, para
+    # no medir por separado cada paso de la recursion
+    inicio = time.perf_counter()
+    puntos, metricas = _buscar_recursiva_paso(cubo, estado_buscado, z)
+    metricas["tiempo_ms"] = (time.perf_counter() - inicio) * 1000
+    return puntos, metricas
+
+
+def _buscar_recursiva_paso(cubo, estado_buscado, z):
+    """Paso recursivo de buscar_recursiva, sin medir tiempo."""
     n = len(cubo)
 
     #1. CASO BASE
@@ -243,7 +262,7 @@ def buscar_recursiva(cubo, estado_buscado=NAVE_OCULTA, z=0):
                 puntos_esta_capa.append((z + 1, x + 1, y + 1))
 
     # 3. PASO RECURSIVO
-    puntos_siguientes, metricas_siguientes = buscar_recursiva(
+    puntos_siguientes, metricas_siguientes = _buscar_recursiva_paso(
         cubo, estado_buscado, z + 1
     )
 
