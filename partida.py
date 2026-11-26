@@ -165,23 +165,18 @@ def _ubicar_flota_manual(cubo, n_max):
         (cubo, flota) con todas las naves del catálogo ubicadas.
     """
     flota_jugador = []
-    total_naves = sum(datos["cantidad"] for datos in flota.CATALOGO_NAVES.values())
 
-    while len(flota_jugador) < total_naves:
-        letras_pendientes = [
-            letra for letra, datos in flota.CATALOGO_NAVES.items()
-            if flota.contar_ubicadas(flota_jugador, letra) < datos["cantidad"]
-        ]
+    while not flota.flota_completa(flota_jugador, flota.CATALOGO_NAVES):
+        letras_pend = flota.letras_pendientes(flota_jugador, flota.CATALOGO_NAVES)
 
         pendientes = ", ".join(
-            f"{letra} x{datos['cantidad'] - flota.contar_ubicadas(flota_jugador, letra)}"
-            for letra, datos in flota.CATALOGO_NAVES.items()
-            if letra in letras_pendientes
+            f"{letra} x{flota.cantidad_pendiente(flota_jugador, flota.CATALOGO_NAVES, letra)}"
+            for letra in letras_pend
         )
         print(f"Pendientes: {pendientes}")
 
         letra = pedir_opcion_menu(
-            letras_pendientes,
+            letras_pend,
             "Nave (" + "/".join(flota.CATALOGO_NAVES.keys()) + "): ",
             "Nave inválida.",
             True

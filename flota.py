@@ -173,6 +173,66 @@ def contar_ubicadas(flota, letra):
     return cantidad
 
 
+def total_naves(catalogo):
+    """Cantidad total de naves que tiene que tener una flota completa.
+
+    Recibe:
+        catalogo: catalogo de naves (ver CATALOGO_NAVES).
+
+    Devuelve:
+        La suma de las cantidades de cada tipo de nave del catalogo.
+    """
+    total = 0
+    for datos_nave in catalogo.values():
+        total += datos_nave["cantidad"]
+    return total
+
+
+def cantidad_pendiente(flota, catalogo, letra):
+    """Cuantas naves de una letra faltan ubicar todavia.
+
+    Recibe:
+        flota: lista de naves ya ubicadas.
+        catalogo: catalogo de naves.
+        letra: letra de la nave.
+
+    Devuelve:
+        La cantidad que falta ubicar de esa letra (0 si ya estan todas).
+    """
+    return catalogo[letra]["cantidad"] - contar_ubicadas(flota, letra)
+
+
+def letras_pendientes(flota, catalogo):
+    """Letras de naves a las que todavia les falta alguna por ubicar.
+
+    Recibe:
+        flota: lista de naves ya ubicadas.
+        catalogo: catalogo de naves.
+
+    Devuelve:
+        Lista de letras con cantidad pendiente mayor a 0, en el mismo
+        orden en que aparecen en el catalogo.
+    """
+    pendientes = []
+    for letra in catalogo:
+        if cantidad_pendiente(flota, catalogo, letra) > 0:
+            pendientes.append(letra)
+    return pendientes
+
+
+def flota_completa(flota, catalogo):
+    """Indica si ya se ubicaron todas las naves del catalogo.
+
+    Recibe:
+        flota: lista de naves ya ubicadas.
+        catalogo: catalogo de naves.
+
+    Devuelve:
+        True si la flota ya tiene todas las naves del catalogo.
+    """
+    return len(flota) >= total_naves(catalogo)
+
+
 def ubicar_nave(cubo, flota, letra, punto_desde, punto_hasta):
     """Ubica una nave en el cubo segun su letra y el tramo que ocupa.
 
