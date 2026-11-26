@@ -383,8 +383,11 @@ def turno_maquina(estado):
     jugador = estado["jugadores"][actual]
     oponente = estado["jugadores"][rival]
 
+    # si dificultad no es ninguno de los dos valores posibles para un
+    # solo jugador, es porque es la lista/tupla de maquina_vs_maquina
+    # (una dificultad por jugador)
     dificultad = estado.get("dificultad", "facil")
-    if type(dificultad) == list or type(dificultad) == tuple:
+    if dificultad != "facil" and dificultad != "dificil":
         dificultad = dificultad[actual - 1]
 
     # si queda una celda de portaaviones esperando el segundo impacto hay
@@ -503,7 +506,9 @@ def _ejecutar_sonar(estado, objetivo, eje):
         print("Para el sonar debe elegir el eje z, x o y.")
         return estado
 
-    if (type(objetivo) != tuple and type(objetivo) != list) or len(objetivo) != 3:
+    try:
+        z, x, y = objetivo
+    except (TypeError, ValueError):
         print("El objetivo no es válido.")
         return estado
 
@@ -511,7 +516,12 @@ def _ejecutar_sonar(estado, objetivo, eje):
         print("No te queda munición de sonar.")
         return estado
 
-    valor = objetivo[{"z": 0, "x": 1, "y": 2}[eje]]
+    if eje == "z":
+        valor = z
+    elif eje == "x":
+        valor = x
+    else:
+        valor = y
 
     try:
         contactos, metricas = radar.sonar_plano(oponente["cubo"], eje, valor)
@@ -571,18 +581,16 @@ def ejecutar_turno(estado, jugada):
         print("Para el láser debe elegir el eje x o y.")
         return estado
 
-    if (type(objetivo) != tuple and type(objetivo) != list) or len(objetivo) != 3:
+    # tablero.punto_valido hace el unpacking y el chequeo de rango; si
+    # objetivo no tiene 3 valores numericos, Python tira TypeError o
+    # ValueError solo, sin que haga falta preguntar de que tipo es
+    try:
+        dentro_del_cubo = tablero.punto_valido(objetivo, estado["n_max"])
+    except (TypeError, ValueError):
         print("El objetivo no es válido.")
         return estado
 
-    # type() en vez de isinstance(): asi tambien se descartan True/False,
-    # que en Python son tecnicamente numeros pero type(True) es bool, no int
-    coordenada_invalida = False
-    for coordenada in objetivo:
-        if type(coordenada) != int or coordenada < 1 or coordenada > estado["n_max"]:
-            coordenada_invalida = True
-
-    if coordenada_invalida:
+    if not dentro_del_cubo:
         print("Las coordenadas están fuera del cubo.")
         return estado
 

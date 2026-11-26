@@ -5,15 +5,17 @@ import tablero
 def _validar_punto(punto, n):
     """Valida que un punto tenga 3 coordenadas dentro del cubo.
 
-    A diferencia de tablero.punto_valido, no asume que punto ya tiene
-    3 elementos (no lanza ValueError si tiene otra longitud).
+    A diferencia de tablero.punto_valido, no revienta si punto no tiene
+    exactamente 3 elementos: en ese caso devuelve False en vez de
+    lanzar una excepcion.
 
     Recibe: punto (tupla o lista), n (tamaño del cubo).
     Devuelve: True si es un punto valido de 3 coordenadas entre 1 y n.
     """
-    if (type(punto) != tuple and type(punto) != list) or len(punto) != 3:
+    try:
+        return tablero.punto_valido(punto, n)
+    except (TypeError, ValueError):
         return False
-    return tablero.punto_valido(tuple(punto), n)
 
 
 def _vecinos(punto):
@@ -119,9 +121,7 @@ def onda_expansiva(cubo, punto, eje=None, flota=None, radio=RADIO_ONDA):
     if not tablero.punto_valido(punto, len(cubo)):
         return set()
 
-    # type() en vez de isinstance(): asi True/False (que en Python son
-    # tecnicamente int) tambien quedan afuera, type(True) es bool, no int
-    if type(radio) != int or radio < 0:
+    if radio < 0:
         return set()
 
     return _propagar_onda(
