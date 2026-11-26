@@ -946,18 +946,35 @@ def _pedir_opcion_turno():
     )
 
 
+PLANOS_CUBO = {
+    "z": tablero.dibujar_plano_z,
+    "x": tablero.dibujar_plano_x,
+    "y": tablero.dibujar_plano_y
+}
+
+
 def _ver_cubo(jugador, n_max):
-    """Muestra una capa del propio cubo del jugador (naves y golpes recibidos).
+    """Muestra un corte del propio cubo del jugador (naves y golpes recibidos).
+
+    Se puede elegir el eje (capa de z, o corte fijando x o y).
 
     Recibe: jugador (diccionario de estado), n_max (tamaño del cubo).
     Devuelve: None, imprime el plano pedido.
     """
-    z = pedir_opcion_menu(
+    eje = pedir_opcion_menu(
+        ["z", "x", "y"],
+        "Eje del corte (z/x/y): ",
+        "El eje debe ser z, x o y."
+    )
+
+    valor = pedir_opcion_menu(
         [str(valor) for valor in range(1, n_max + 1)],
-        f"Capa z a mostrar (1 a {n_max}): ",
+        f"Valor del corte en {eje} (1 a {n_max}): ",
         f"Debe ser un número entre 1 y {n_max}."
     )
-    print(tablero.dibujar_plano_z(jugador["cubo"], int(z)))
+
+    dibujar = PLANOS_CUBO[eje]
+    print(dibujar(jugador["cubo"], int(valor)))
 
 
 def _ejecutar_recorrido_demo(jugador):
