@@ -67,8 +67,8 @@ def pedir_arma():
     """
 
     return pedir_opcion_menu(
-        ["T", "R", "C", "L", "O", "G", "S"],
-        "Arma (T/R/C/L/O/G/S): ",
+        ["T", "R", "C", "S", "L", "O", "G"],
+        "Arma (T/R/C/S/L/O/G): ",
         "Arma no válida. Elija una de las armas disponibles.",
         True
     )
@@ -1034,6 +1034,43 @@ def _guardar_y_salir(estado):
         print("Volviendo al menú principal...")
 
 
+def _accion_disparar(estado, jugador):
+    """Pide arma, objetivo y (si hace falta) eje, y ejecuta el turno.
+
+    Devuelve: (estado actualizado, True) para seguir jugando.
+    """
+    arma = pedir_arma()
+    objetivo = pedir_objetivo(estado["n_max"])
+
+    jugada = {
+        "arma": arma,
+        "objetivo": objetivo
+    }
+
+    if arma in ("L", "S"):
+        jugada["eje"] = pedir_eje(arma)
+
+    return ejecutar_turno(estado, jugada), True
+
+
+def _accion_ver_cubo(estado, jugador):
+    """Devuelve: (estado sin cambios, True) para seguir jugando."""
+    _ver_cubo(jugador, estado["n_max"])
+    return estado, True
+
+
+def _accion_recorrido(estado, jugador):
+    """Devuelve: (estado sin cambios, True) para seguir jugando."""
+    _ejecutar_recorrido_demo(jugador)
+    return estado, True
+
+
+def _accion_guardar(estado, jugador):
+    """Devuelve: (estado sin cambios, False) para cortar el ciclo de turnos."""
+    _guardar_y_salir(estado)
+    return estado, False
+
+
 def jugar_partida(estado):
     """
     Gestiona el ciclo de turnos de una partida hasta que haya un ganador.
@@ -1045,6 +1082,13 @@ def jugar_partida(estado):
         El diccionario de estado actualizado al finalizar la partida (o
         al guardar y salir antes de que haya ganador).
     """
+    acciones_turno = {
+        "1": _accion_disparar,
+        "2": _accion_ver_cubo,
+        "3": _accion_guardar,
+        "4": _accion_recorrido
+    }
+
     while estado["ganador"] is None:
         actual = estado["turno_actual"]
         jugador = estado["jugadores"][actual]
@@ -1056,31 +1100,11 @@ def jugar_partida(estado):
             continue
 
         opcion_turno = partida._pedir_opcion_turno()
+        accion = acciones_turno[opcion_turno]
+        estado, seguir_jugando = accion(estado, jugador)
 
-        if opcion_turno == "2":
-            partida._ver_cubo(jugador, estado["n_max"])
-            continue
-
-        if opcion_turno == "3":
-            partida._guardar_y_salir(estado)
+        if not seguir_jugando:
             return estado
-
-        if opcion_turno == "4":
-            partida._ejecutar_recorrido_demo(jugador)
-            continue
-
-        arma = partida.pedir_arma()
-        objetivo = partida.pedir_objetivo(estado["n_max"])
-
-        jugada = {
-            "arma": arma,
-            "objetivo": objetivo
-        }
-
-        if arma in ("L", "S"):
-            jugada["eje"] = partida.pedir_eje(arma)
-
-        estado = partida.ejecutar_turno(estado, jugada)
 
     print("Ganador:", estado["ganador"])
     partida._reportar_fin_de_partida(estado)
