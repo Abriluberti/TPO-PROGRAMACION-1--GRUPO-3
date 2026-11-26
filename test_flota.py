@@ -19,6 +19,20 @@ def test_ubicar_nave_recta():
     assert cubo[0][1][0] == tablero.NAVE_OCULTA
 
 
+def test_contar_ubicadas():
+    cubo = tablero.crear_cubo(8)
+    flota_jugador = []
+
+    assert flota.contar_ubicadas(flota_jugador, "F") == 0
+
+    cubo, flota_jugador = flota.ubicar_nave(cubo, flota_jugador, "F", (1, 1, 1), (1, 1, 2))
+    assert flota.contar_ubicadas(flota_jugador, "F") == 1
+    assert flota.contar_ubicadas(flota_jugador, "D") == 0
+
+    cubo, flota_jugador = flota.ubicar_nave(cubo, flota_jugador, "F", (3, 1, 1), (3, 1, 2))
+    assert flota.contar_ubicadas(flota_jugador, "F") == 2
+
+
 def test_ubicar_nave_no_pisa_la_lista_original():
     """ubicar_nave no debe mutar la lista de flota que recibe."""
     cubo = tablero.crear_cubo(8)

@@ -170,11 +170,11 @@ def _ubicar_flota_manual(cubo, n_max):
     while len(flota_jugador) < total_naves:
         letras_pendientes = [
             letra for letra, datos in flota.CATALOGO_NAVES.items()
-            if sum(1 for nave in flota_jugador if nave["letra"] == letra) < datos["cantidad"]
+            if flota.contar_ubicadas(flota_jugador, letra) < datos["cantidad"]
         ]
 
         pendientes = ", ".join(
-            f"{letra} x{datos['cantidad'] - sum(1 for nave in flota_jugador if nave['letra'] == letra)}"
+            f"{letra} x{datos['cantidad'] - flota.contar_ubicadas(flota_jugador, letra)}"
             for letra, datos in flota.CATALOGO_NAVES.items()
             if letra in letras_pendientes
         )

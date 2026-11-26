@@ -156,6 +156,23 @@ def _validar_lugar(cubo, celdas, n):
                             )
 
 
+def contar_ubicadas(flota, letra):
+    """Cuenta cuantas naves de una letra ya estan en la flota.
+
+    Recibe:
+        flota: lista de naves ya ubicadas.
+        letra: letra de la nave a contar.
+
+    Devuelve:
+        La cantidad de naves con esa letra que ya tiene la flota.
+    """
+    cantidad = 0
+    for nave in flota:
+        if nave["letra"] == letra:
+            cantidad += 1
+    return cantidad
+
+
 def ubicar_nave(cubo, flota, letra, punto_desde, punto_hasta):
     """Ubica una nave en el cubo segun su letra y el tramo que ocupa.
 
@@ -180,7 +197,7 @@ def ubicar_nave(cubo, flota, letra, punto_desde, punto_hasta):
         raise FlotaError("Nave invalida: debe ser F, D, S, C, P o E.")
 
     datos_nave = CATALOGO_NAVES[letra]
-    ya_ubicadas = sum(1 for nave in flota if nave["letra"] == letra)
+    ya_ubicadas = contar_ubicadas(flota, letra)
 
     if ya_ubicadas >= datos_nave["cantidad"]:
         raise FlotaError(f"Ya se ubicaron todas las naves {datos_nave['nombre']}.")
