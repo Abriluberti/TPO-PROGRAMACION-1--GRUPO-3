@@ -872,11 +872,12 @@ def opcion_salir():
 
 
 def _pedir_opcion_turno():
-    """Pide la acción del turno: disparar, ver el cubo o guardar y salir."""
+    """Pide la acción del turno: disparar, ver el cubo, guardar o un recorrido."""
     return pedir_opcion_menu(
-        ["1", "2", "3"],
-        "1 - Disparar / 2 - Ver el cubo / 3 - Guardar y salir\nOpcion: ",
-        "Opcion invalida. Ingrese 1, 2 o 3."
+        ["1", "2", "3", "4"],
+        "1 - Disparar / 2 - Ver el cubo / 3 - Guardar y salir / "
+        "4 - Ejecutar un recorrido\nOpcion: ",
+        "Opcion invalida. Ingrese 1, 2, 3 o 4."
     )
 
 
@@ -892,6 +893,26 @@ def _ver_cubo(jugador, n_max):
         f"Debe ser un número entre 1 y {n_max}."
     )
     print(tablero.dibujar_plano_z(jugador["cubo"], int(z)))
+
+
+def _ejecutar_recorrido_demo(jugador):
+    """Corre uno de los recorridos del cubo (radar.py) y muestra un resumen.
+
+    Recibe: jugador (diccionario de estado, para usar su propio cubo).
+    Devuelve: None, imprime cuántas celdas visitó y las primeras 5.
+    """
+    nombres = list(radar.RECORRIDOS.keys())
+
+    nombre = pedir_opcion_menu(
+        nombres,
+        f"Recorrido ({'/'.join(nombres)}): ",
+        "Recorrido inválido."
+    )
+
+    recorrido = radar.ejecutar_recorrido(nombre, jugador["cubo"])
+
+    print(f"Recorrido '{nombre}': {len(recorrido)} celdas visitadas.")
+    print("Primeras celdas:", recorrido[:5])
 
 
 def _guardar_y_salir(estado):
@@ -944,6 +965,10 @@ def jugar_partida(estado):
         if opcion_turno == "3":
             partida._guardar_y_salir(estado)
             return estado
+
+        if opcion_turno == "4":
+            partida._ejecutar_recorrido_demo(jugador)
+            continue
 
         arma = partida.pedir_arma()
         objetivo = partida.pedir_objetivo(estado["n_max"])
