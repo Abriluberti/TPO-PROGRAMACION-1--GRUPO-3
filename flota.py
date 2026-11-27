@@ -524,6 +524,22 @@ def impacto_pendiente(flota, punto):
     return False
 
 
+def celdas_pendientes(flota):
+    """Todas las celdas que ya tienen un primer impacto y esperan el segundo.
+
+    Comportamiento propio del Portaaviones. Sirve para que un arma de
+    area (que afecta varias celdas ademas del objetivo) tambien pueda
+    confirmar una celda pendiente aunque no sea el objetivo exacto.
+
+    Recibe: flota (lista de naves).
+    Devuelve: set de celdas pendientes de confirmar (vacio si no hay).
+    """
+    celdas = set()
+    for nave in flota:
+        celdas |= nave["impactos_parciales"]
+    return celdas
+
+
 def proximo_impacto_pendiente(flota):
     """Busca una celda con un primer impacto que espera el segundo.
 

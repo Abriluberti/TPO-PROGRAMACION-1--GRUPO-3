@@ -580,11 +580,10 @@ def ejecutar_turno(estado, jugada):
             ocupadas |= nave["celdas"]
 
     # armamento.aplicar_disparo descarta las celdas ya disparadas antes;
-    # si el objetivo es una celda de portaaviones que espera su segundo
-    # impacto, hay que sacarla de esa lista para que no se descarte sola
-    disparos_previos = jugador["disparos"]
-    if flota.impacto_pendiente(oponente["flota"], objetivo):
-        disparos_previos = disparos_previos - {objetivo}
+    # las celdas de portaaviones que esperan su segundo impacto hay que
+    # sacarlas de esa lista, si no un arma de area que pase por ahi de
+    # rebote (sin apuntarles directo) las ignoraria en vez de confirmarlas
+    disparos_previos = jugador["disparos"] - flota.celdas_pendientes(oponente["flota"])
 
     resultado = armamento.aplicar_disparo(
         arma,

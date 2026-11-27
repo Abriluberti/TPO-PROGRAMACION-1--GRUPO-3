@@ -136,6 +136,33 @@ def test_portaaviones_tercer_disparo_a_celda_confirmada_se_rechaza():
     assert estado["jugadores"][1]["disparos"] == disparos_antes
 
 
+def test_portaaviones_confirma_impacto_pendiente_con_arma_de_area():
+    """Regresion: un arma de area (Racimo) que de rebote pasa por una
+    celda de portaaviones ya con un primer impacto, tiene que confirmar
+    ese segundo impacto. Antes esa celda se filtraba como 'ya disparada'
+    y el racimo la ignoraba en vez de confirmarla."""
+    estado = estado_vacio()
+
+    portaaviones = None
+    for nave in estado["jugadores"][2]["flota"]:
+        if nave["letra"] == "P":
+            portaaviones = nave
+
+    celdas_ordenadas = sorted(portaaviones["celdas"])
+    celda_pendiente = celdas_ordenadas[0]
+    celda_vecina = celdas_ordenadas[1]
+
+    estado["turno_actual"] = 1
+    estado = partida.ejecutar_turno(estado, {"arma": "T", "objetivo": celda_pendiente})
+    assert celda_pendiente in portaaviones["impactos_parciales"]
+
+    estado["turno_actual"] = 1
+    estado = partida.ejecutar_turno(estado, {"arma": "R", "objetivo": celda_vecina})
+
+    assert celda_pendiente in portaaviones["impactos"]
+    assert celda_pendiente not in portaaviones["impactos_parciales"]
+
+
 def test_portaaviones_se_hunde_tras_doble_impacto_en_todas_sus_celdas():
     estado = estado_vacio()
     portaaviones = next(n for n in estado["jugadores"][2]["flota"] if n["letra"] == "P")
