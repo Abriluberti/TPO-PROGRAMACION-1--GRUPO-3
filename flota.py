@@ -427,3 +427,177 @@ def ubicacion_automatica(cubo, catalogo, semilla=None):
         )
 
     return flota
+
+
+# Comportamientos propios de cada nave y estado de combate (impactos,
+# averias y hundimiento). Estas funciones no imprimen ni piden datos:
+# el integrador (partida.py) llama a cada una y decide que mostrar
+# segun lo que le devuelven.
+
+def es_inmune(nave, arma):
+    """Indica si una nave es inmune a un arma por su comportamiento propio.
+
+    El submarino no es alcanzado por el barrido laser.
+
+    Recibe: nave (diccionario), arma (letra del arma).
+    Devuelve: True si ese arma no puede afectar a esa nave.
+    """
+    return nave["letra"] == "S" and arma == "L"
+
+
+def registrar_impacto(nave, punto):
+    """Registra un impacto en una celda de la nave y actualiza su estado.
+
+    Comportamiento propio del Portaaviones: cada celda necesita dos
+    impactos para confirmarse como un impacto real; el primero queda
+    como parcial.
+
+    Recibe:
+        nave: diccionario de la nave impactada.
+        punto: celda impactada (debe pertenecer a nave["celdas"]).
+
+    Devuelve:
+        Diccionario con:
+        "confirmado": False si es el primer impacto a una celda de
+            Portaaviones (todavia no cuenta como impacto real).
+        "recien_confirmada": True si esta celda pasa a contar como
+            impacto real recien en este llamado.
+        "recien_hundida": True si este impacto hundio la nave recien
+            en este llamado.
+    """
+    if nave["letra"] == "P" and punto not in nave["impactos"]:
+        if punto not in nave["impactos_parciales"]:
+            nave["impactos_parciales"].add(punto)
+            return {
+                "confirmado": False,
+                "recien_confirmada": False,
+                "recien_hundida": False
+            }
+
+        nave["impactos_parciales"].remove(punto)
+
+    recien_confirmada = punto not in nave["impactos"]
+    nave["impactos"].add(punto)
+
+    recien_hundida = False
+    if not nave["hundida"] and nave["impactos"] == nave["celdas"]:
+        nave["hundida"] = True
+        recien_hundida = True
+
+    return {
+        "confirmado": True,
+        "recien_confirmada": recien_confirmada,
+        "recien_hundida": recien_hundida
+    }
+
+
+def impacto_pendiente(flota, punto):
+    """Indica si una celda ya tiene un primer impacto y espera el segundo.
+
+    Comportamiento propio del Portaaviones: mientras falte el segundo
+    impacto para confirmar una celda, hay que poder volver a dispararle
+    a esa misma celda.
+
+    Recibe: flota (lista de naves), punto.
+    Devuelve: True si hay que permitir disparar de nuevo a esa celda.
+    """
+    for nave in flota:
+        if punto in nave["impactos_parciales"]:
+            return True
+    return False
+
+
+def proximo_impacto_pendiente(flota):
+    """Busca una celda con un primer impacto que espera el segundo.
+
+    Recibe: flota (lista de naves).
+    Devuelve: una celda (tupla) pendiente de confirmar, o None si no hay.
+    """
+    for nave in flota:
+        if nave["impactos_parciales"]:
+            return next(iter(nave["impactos_parciales"]))
+    return None
+
+
+def celdas_para_torpedo_guiado(flota):
+    """Celdas ya impactadas de naves no hundidas.
+
+    Son las celdas candidatas para el torpedo guiado, que busca desde
+    ahi una celda vecina de la misma nave que todavia no fue impactada.
+
+    Recibe: flota (lista de naves).
+    Devuelve: set de celdas.
+    """
+    celdas = set()
+    for nave in flota:
+        if nave["impactos"] and not nave["hundida"]:
+            celdas |= nave["impactos"]
+    return celdas
+
+
+def revela_celda_al_impactar(nave):
+    """Indica si esta nave revela una celda del rival al ser impactada.
+
+    Comportamiento propio del Destructor.
+
+    Recibe: nave (diccionario).
+    Devuelve: True si esta nave tiene ese comportamiento.
+    """
+    return nave["letra"] == "D"
+
+
+def elegir_celda_sin_revelar(flota):
+    """Elige al azar una celda ocupada de la flota que no fue impactada.
+
+    Se usa para el comportamiento propio del Destructor (revelar una
+    celda ocupada del rival al ser impactado).
+
+    Recibe: flota (lista de naves).
+    Devuelve: una celda (tupla), o None si no queda ninguna sin revelar.
+    """
+    celdas_sin_revelar = set()
+    for nave in flota:
+        celdas_sin_revelar |= (nave["celdas"] - nave["impactos"])
+
+    if not celdas_sin_revelar:
+        return None
+
+    return random.choice(sorted(celdas_sin_revelar))
+
+
+def otorga_municion_extra_al_hundirse(nave):
+    """Indica si esta nave otorga municion extra al jugador al hundirse.
+
+    Comportamiento propio de la Estacion orbital.
+
+    Recibe: nave (diccionario).
+    Devuelve: True si esta nave tiene ese comportamiento.
+    """
+    return nave["letra"] == "E"
+
+
+def marcar_hundida(cubo, nave):
+    """Marca en el cubo las celdas de una nave recien hundida.
+
+    Recibe: cubo, nave (diccionario, ya con nave["hundida"] = True).
+    Devuelve: None.
+    """
+    for z, x, y in nave["celdas"]:
+        cubo[z - 1][y - 1][x - 1] = tablero.HUNDIDO
+
+
+def toda_hundida(flota):
+    """Indica si todas las naves de una flota estan hundidas.
+
+    Recibe: flota (lista de naves).
+    Devuelve: True si la flota no esta vacia y todas sus naves estan
+        hundidas; False si esta vacia o le queda alguna a flote.
+    """
+    if not flota:
+        return False
+
+    for nave in flota:
+        if not nave["hundida"]:
+            return False
+
+    return True

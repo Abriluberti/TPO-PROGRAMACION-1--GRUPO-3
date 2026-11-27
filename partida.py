@@ -330,12 +330,7 @@ def hay_ganador(estado):
         id_rival = 3 - id_jugador
         flota_rival = estado["jugadores"][id_rival]["flota"]
 
-        todas_hundidas = True
-        for nave in flota_rival:
-            if not nave["hundida"]:
-                todas_hundidas = False
-
-        if flota_rival and todas_hundidas:
+        if flota.toda_hundida(flota_rival):
             return estado["jugadores"][id_jugador]["nombre"]
 
     return None
@@ -389,18 +384,17 @@ def turno_maquina(estado):
     # que rematarla si o si: esa celda ya figura en jugador["disparos"]
     # (por el primer impacto) asi que el sorteo al azar de mas abajo
     # nunca la vuelve a elegir sola, y la nave no se termina de hundir
-    for nave in oponente["flota"]:
-        if nave["letra"] == "P" and nave["impactos_parciales"]:
-            objetivo = next(iter(nave["impactos_parciales"]))
-            print(f"La máquina remata el segundo impacto del portaaviones a {objetivo}.")
-            return ejecutar_turno(estado, {"arma": "T", "objetivo": objetivo, "eje": None})
+    objetivo_pendiente = flota.proximo_impacto_pendiente(oponente["flota"])
+    if objetivo_pendiente is not None:
+        print(f"La máquina remata el segundo impacto del portaaviones a {objetivo_pendiente}.")
+        return ejecutar_turno(estado, {"arma": "T", "objetivo": objetivo_pendiente, "eje": None})
 
     if dificultad == "dificil":
-        for nave in oponente["flota"]:
-            if nave["impactos"] and not nave["hundida"]:
-                objetivo = next(iter(nave["impactos"]))
-                print(f"La máquina remata con torpedo guiado a {objetivo}.")
-                return ejecutar_turno(estado, {"arma": "G", "objetivo": objetivo, "eje": None})
+        celdas_candidatas = flota.celdas_para_torpedo_guiado(oponente["flota"])
+        if celdas_candidatas:
+            objetivo = next(iter(celdas_candidatas))
+            print(f"La máquina remata con torpedo guiado a {objetivo}.")
+            return ejecutar_turno(estado, {"arma": "G", "objetivo": objetivo, "eje": None})
 
     objetivos_disponibles = [
         (z, x, y)
@@ -420,48 +414,6 @@ def turno_maquina(estado):
     return ejecutar_turno(estado, {"arma": "T", "objetivo": disparo, "eje": None})
 
 
-def _marcar_hundida(cubo, nave):
-    """Marca en el cubo las celdas de una nave recién hundida."""
-    for z, x, y in nave["celdas"]:
-        cubo[z - 1][y - 1][x - 1] = tablero.HUNDIDO
-
-
-def _revelar_celda_destructor(oponente):
-    """Comportamiento propio del Destructor: al ser impactado revela
-    una celda ocupada del rival (de cualquier nave no hundida).
-
-    Recibe: oponente (jugador dueño de la flota atacada).
-    Devuelve: None. Imprime la celda revelada, si queda alguna.
-    """
-    celdas_sin_revelar = set()
-
-    for nave in oponente["flota"]:
-        celdas_sin_revelar |= (nave["celdas"] - nave["impactos"])
-
-    if celdas_sin_revelar:
-        celda = random.choice(sorted(celdas_sin_revelar))
-        print(f"¡El destructor averiado revela una celda ocupada del rival!: {celda}")
-
-
-def _celda_portaaviones_pendiente(oponente, objetivo):
-    """Indica si objetivo es una celda de un Portaaviones que ya recibió
-    un primer impacto y necesita un segundo para contar como impacto real.
-
-    Comportamiento propio del Portaaviones: cada celda requiere dos
-    impactos. Mientras falte el segundo, hay que poder volver a
-    dispararle a esa misma celda (que si no, "ya disparaste ahi" lo
-    bloquearía para siempre).
-
-    Recibe: oponente (jugador dueño de la flota atacada), objetivo.
-    Devuelve: True si hace falta un segundo impacto en esa celda.
-    """
-    for nave in oponente["flota"]:
-        if nave["letra"] == "P" and objetivo in nave["impactos_parciales"]:
-            return True
-
-    return False
-
-
 def _aplicar_bonus_estacion(estado, actual, nave):
     """Comportamiento propio de la Estación orbital: al hundirse otorga
     munición extra al jugador que la hundió.
@@ -469,7 +421,7 @@ def _aplicar_bonus_estacion(estado, actual, nave):
     Recibe: estado, actual (id del jugador que disparó), nave hundida.
     Devuelve: None.
     """
-    if nave["letra"] != "E":
+    if not flota.otorga_municion_extra_al_hundirse(nave):
         return
 
     municion = estado["jugadores"][actual]["municion"]
@@ -597,35 +549,24 @@ def ejecutar_turno(estado, jugada):
     if arma == "G":
         # las naves ya trackean sus propios impactos; el torpedo guiado
         # necesita una celda impactada de una nave que no este hundida
-        celdas_validas_para_guiado = set()
-
-        for nave in oponente["flota"]:
-            if nave["impactos"] and not nave["hundida"]:
-                celdas_validas_para_guiado |= nave["impactos"]
-
-        if objetivo not in celdas_validas_para_guiado:
+        if objetivo not in flota.celdas_para_torpedo_guiado(oponente["flota"]):
             print("El torpedo guiado necesita un impacto previo en una nave no hundida.")
             return estado
 
-    elif objetivo in jugador["disparos"] and not _celda_portaaviones_pendiente(oponente, objetivo):
+    elif objetivo in jugador["disparos"] and not flota.impacto_pendiente(oponente["flota"], objetivo):
         print("Ya disparaste a esa coordenada.")
         return estado
 
     ocupadas = set()
     for nave in oponente["flota"]:
-        ocupadas |= nave["celdas"]
-
-    # comportamiento propio del submarino: el barrido laser no lo alcanza
-    if arma == "L":
-        for nave in oponente["flota"]:
-            if nave["letra"] == "S":
-                ocupadas = ocupadas - nave["celdas"]
+        if not flota.es_inmune(nave, arma):
+            ocupadas |= nave["celdas"]
 
     # armamento.aplicar_disparo descarta las celdas ya disparadas antes;
     # si el objetivo es una celda de portaaviones que espera su segundo
     # impacto, hay que sacarla de esa lista para que no se descarte sola
     disparos_previos = jugador["disparos"]
-    if _celda_portaaviones_pendiente(oponente, objetivo):
+    if flota.impacto_pendiente(oponente["flota"], objetivo):
         disparos_previos = disparos_previos - {objetivo}
 
     resultado = armamento.aplicar_disparo(
@@ -660,28 +601,20 @@ def ejecutar_turno(estado, jugada):
 
         for nave in oponente["flota"]:
             if punto in nave["celdas"]:
-                # comportamiento propio del portaaviones: la celda recien
-                # impactada no cuenta como impacto real hasta el segundo golpe
-                if nave["letra"] == "P" and punto not in nave["impactos"]:
-                    if punto not in nave["impactos_parciales"]:
-                        nave["impactos_parciales"].add(punto)
-                        print("Impacto parcial en el portaaviones: necesita un segundo impacto en esa celda.")
-                        break
+                info_impacto = flota.registrar_impacto(nave, punto)
 
-                    # ya sabemos que esta (se chequeo arriba), por eso remove
-                    # y no hace falta nada mas especial para sacarla
-                    nave["impactos_parciales"].remove(punto)
+                if not info_impacto["confirmado"]:
+                    print("Impacto parcial en el portaaviones: necesita un segundo impacto en esa celda.")
+                    break
 
-                ya_estaba_impactada = punto in nave["impactos"]
-                nave["impactos"].add(punto)
+                if info_impacto["recien_confirmada"] and flota.revela_celda_al_impactar(nave):
+                    celda_revelada = flota.elegir_celda_sin_revelar(oponente["flota"])
+                    if celda_revelada is not None:
+                        print(f"¡El destructor averiado revela una celda ocupada del rival!: {celda_revelada}")
 
-                if not ya_estaba_impactada and nave["letra"] == "D":
-                    _revelar_celda_destructor(oponente)
-
-                if not nave["hundida"] and nave["impactos"] == nave["celdas"]:
-                    nave["hundida"] = True
+                if info_impacto["recien_hundida"]:
                     print("¡Hundiste una nave!")
-                    _marcar_hundida(oponente["cubo"], nave)
+                    flota.marcar_hundida(oponente["cubo"], nave)
                     _aplicar_bonus_estacion(estado, actual, nave)
 
                 break
