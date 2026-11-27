@@ -219,6 +219,17 @@ def actualizar_ranking(jugadores, ganador):
     return ranking
 
 
+def _clave_orden_ranking(fila):
+    """Clave de orden para el ranking: mas ganadas primero y, entre los
+    que tengan las mismas ganadas, menos partidas jugadas primero.
+
+    Recibe: fila (jugador, ganadas, jugadas).
+    Devuelve: tupla para que sorted() ordene como corresponde.
+    """
+    jugador, ganadas, jugadas = fila
+    return (-ganadas, jugadas)
+
+
 def obtener_ranking():
     """Devuelve el ranking ordenado.
 
@@ -233,4 +244,4 @@ def obtener_ranking():
         ganadas = ranking[jugador]["ganadas"]
         jugadas = ranking[jugador]["jugadas"]
         lista.append((jugador, ganadas, jugadas))
-    return sorted(lista, key=lambda t: (-t[1], t[2]))
+    return sorted(lista, key=_clave_orden_ranking)

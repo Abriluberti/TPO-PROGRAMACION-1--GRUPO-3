@@ -46,20 +46,36 @@ def _celdas_del_tramo(punto_desde, punto_hasta):
     z1, x1, y1 = punto_desde
     z2, x2, y2 = punto_hasta
 
-    ejes_distintos = sum(1 for a, b in ((z1, z2), (x1, x2), (y1, y2)) if a != b)
+    ejes_distintos = 0
+    if z1 != z2:
+        ejes_distintos += 1
+    if x1 != x2:
+        ejes_distintos += 1
+    if y1 != y2:
+        ejes_distintos += 1
+
     if ejes_distintos > 1:
         raise FlotaError("Las celdas de la nave deben estar en linea recta.")
 
     if z1 != z2:
-        paso = 1 if z2 > z1 else -1
+        if z2 > z1:
+            paso = 1
+        else:
+            paso = -1
         return [(z, x1, y1) for z in range(z1, z2 + paso, paso)]
 
     if x1 != x2:
-        paso = 1 if x2 > x1 else -1
+        if x2 > x1:
+            paso = 1
+        else:
+            paso = -1
         return [(z1, x, y1) for x in range(x1, x2 + paso, paso)]
 
     if y1 != y2:
-        paso = 1 if y2 > y1 else -1
+        if y2 > y1:
+            paso = 1
+        else:
+            paso = -1
         return [(z1, x1, y) for y in range(y1, y2 + paso, paso)]
 
     return [(z1, x1, y1)]
@@ -292,7 +308,7 @@ def ubicar_nave(cubo, flota, letra, punto_desde, punto_hasta):
     return cubo, flota
 
 
-def _tramo_aleatorio(generador, letra, datos_nave, n):
+def _tramo_aleatorio(letra, datos_nave, n):
     """Genera un tramo (o bloque) al azar para intentar ubicar una nave.
 
     No garantiza que el tramo sea valido: ubicacion_automatica reintenta
@@ -300,22 +316,24 @@ def _tramo_aleatorio(generador, letra, datos_nave, n):
     """
     if letra == "E":
         punto_desde = (
-            generador.randint(1, n),
-            generador.randint(1, n),
-            generador.randint(1, n)
+            random.randint(1, n),
+            random.randint(1, n),
+            random.randint(1, n)
         )
-        punto_hasta = tuple(
-            coordenada + generador.choice((1, -1)) for coordenada in punto_desde
+        punto_hasta = (
+            punto_desde[0] + random.choice((1, -1)),
+            punto_desde[1] + random.choice((1, -1)),
+            punto_desde[2] + random.choice((1, -1))
         )
         return punto_desde, punto_hasta
 
     tamanio = datos_nave["tamanio"]
-    eje = generador.choice(("z", "x", "y"))
-    sentido = generador.choice((1, -1))
+    eje = random.choice(("z", "x", "y"))
+    sentido = random.choice((1, -1))
     z, x, y = (
-        generador.randint(1, n),
-        generador.randint(1, n),
-        generador.randint(1, n)
+        random.randint(1, n),
+        random.randint(1, n),
+        random.randint(1, n)
     )
     punto_desde = (z, x, y)
 
@@ -329,12 +347,11 @@ def _tramo_aleatorio(generador, letra, datos_nave, n):
     return punto_desde, punto_hasta
 
 
-def _ubicar_automatica_una_nave(cubo, flota, generador, letra, datos_nave, n):
+def _ubicar_automatica_una_nave(cubo, flota, letra, datos_nave, n):
     """Intenta ubicar una nave de un tipo en un tramo al azar, reintentando.
 
     Recibe:
         cubo, flota: estado actual.
-        generador: random.Random ya inicializado (con o sin semilla).
         letra: letra de la nave a ubicar.
         datos_nave: entrada del catalogo para esa letra.
         n: tamanio del cubo.
@@ -347,7 +364,7 @@ def _ubicar_automatica_una_nave(cubo, flota, generador, letra, datos_nave, n):
         intentos (el cubo esta demasiado lleno o es muy chico).
     """
     for _ in range(INTENTOS_MAXIMOS):
-        punto_desde, punto_hasta = _tramo_aleatorio(generador, letra, datos_nave, n)
+        punto_desde, punto_hasta = _tramo_aleatorio(letra, datos_nave, n)
 
         try:
             return ubicar_nave(cubo, flota, letra, punto_desde, punto_hasta)
@@ -363,8 +380,8 @@ def ubicacion_automatica(cubo, catalogo, semilla=None):
     Recibe:
         cubo: cubo de juego.
         catalogo: catalogo de naves (ver CATALOGO_NAVES).
-        semilla: semilla del generador aleatorio, para que la ubicacion
-            sea reproducible. None usa aleatoriedad real.
+        semilla: semilla para random.seed(), para que la ubicacion sea
+            reproducible. None usa aleatoriedad real.
 
     Devuelve:
         La flota ubicada (lista de naves). El cubo se modifica en el
@@ -374,7 +391,7 @@ def ubicacion_automatica(cubo, catalogo, semilla=None):
         FlotaError si, tras varios intentos, no se encuentra lugar
         para alguna nave (el cubo es demasiado chico para la flota).
     """
-    generador = random.Random(semilla)
+    random.seed(semilla)
     n = len(cubo)
     flota = []
 
@@ -388,42 +405,42 @@ def ubicacion_automatica(cubo, catalogo, semilla=None):
     datos_estacion = catalogo["E"]
     for _ in range(datos_estacion["cantidad"]):
         cubo, flota = _ubicar_automatica_una_nave(
-            cubo, flota, generador, "E", datos_estacion, n
+            cubo, flota, "E", datos_estacion, n
         )
 
     # Portaaviones (1 nave de 5 celdas, solo en la mitad superior de z)
     datos_portaaviones = catalogo["P"]
     for _ in range(datos_portaaviones["cantidad"]):
         cubo, flota = _ubicar_automatica_una_nave(
-            cubo, flota, generador, "P", datos_portaaviones, n
+            cubo, flota, "P", datos_portaaviones, n
         )
 
     # Crucero (1 nave de 4 celdas, no puede ocupar z = 1 ni z = N)
     datos_crucero = catalogo["C"]
     for _ in range(datos_crucero["cantidad"]):
         cubo, flota = _ubicar_automatica_una_nave(
-            cubo, flota, generador, "C", datos_crucero, n
+            cubo, flota, "C", datos_crucero, n
         )
 
     # Destructor (2 naves de 3 celdas, sin restriccion)
     datos_destructor = catalogo["D"]
     for _ in range(datos_destructor["cantidad"]):
         cubo, flota = _ubicar_automatica_una_nave(
-            cubo, flota, generador, "D", datos_destructor, n
+            cubo, flota, "D", datos_destructor, n
         )
 
     # Submarino (2 naves de 3 celdas, solo en la mitad inferior de z)
     datos_submarino = catalogo["S"]
     for _ in range(datos_submarino["cantidad"]):
         cubo, flota = _ubicar_automatica_una_nave(
-            cubo, flota, generador, "S", datos_submarino, n
+            cubo, flota, "S", datos_submarino, n
         )
 
     # Fragata (3 naves de 2 celdas, sin restriccion)
     datos_fragata = catalogo["F"]
     for _ in range(datos_fragata["cantidad"]):
         cubo, flota = _ubicar_automatica_una_nave(
-            cubo, flota, generador, "F", datos_fragata, n
+            cubo, flota, "F", datos_fragata, n
         )
 
     return flota
@@ -514,8 +531,8 @@ def proximo_impacto_pendiente(flota):
     Devuelve: una celda (tupla) pendiente de confirmar, o None si no hay.
     """
     for nave in flota:
-        if nave["impactos_parciales"]:
-            return next(iter(nave["impactos_parciales"]))
+        for celda in nave["impactos_parciales"]:
+            return celda
     return None
 
 

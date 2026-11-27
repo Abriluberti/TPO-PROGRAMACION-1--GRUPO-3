@@ -83,9 +83,12 @@ def pedir_eje(arma):
     Devuelve:
         El eje elegido o None si no corresponde.
     """
-    if arma in ("L", "S"):
-        opciones = "x o y" if arma == "L" else "z, x o y"
-        patron = r"^[xy]$" if arma == "L" else r"^[zxy]$"
+    if arma == "L":
+        opciones = "x o y"
+        patron = r"^[xy]$"
+    elif arma == "S":
+        opciones = "z, x o y"
+        patron = r"^[zxy]$"
     else:
         return None
 
@@ -369,7 +372,10 @@ def turno_maquina(estado):
     """
     n = estado["n_max"]
     actual = estado["turno_actual"]
-    rival = 2 if actual == 1 else 1
+    if actual == 1:
+        rival = 2
+    else:
+        rival = 1
     jugador = estado["jugadores"][actual]
     oponente = estado["jugadores"][rival]
 
@@ -391,10 +397,10 @@ def turno_maquina(estado):
 
     if dificultad == "dificil":
         celdas_candidatas = flota.celdas_para_torpedo_guiado(oponente["flota"])
-        if celdas_candidatas:
-            objetivo = next(iter(celdas_candidatas))
-            print(f"La máquina remata con torpedo guiado a {objetivo}.")
-            return ejecutar_turno(estado, {"arma": "G", "objetivo": objetivo, "eje": None})
+
+        for celda in celdas_candidatas:
+            print(f"La máquina remata con torpedo guiado a {celda}.")
+            return ejecutar_turno(estado, {"arma": "G", "objetivo": celda, "eje": None})
 
     objetivos_disponibles = [
         (z, x, y)
@@ -445,7 +451,10 @@ def _ejecutar_sonar(estado, objetivo, eje):
         El estado actualizado.
     """
     actual = estado["turno_actual"]
-    rival = 2 if actual == 1 else 1
+    if actual == 1:
+        rival = 2
+    else:
+        rival = 1
     jugador = estado["jugadores"][actual]
     oponente = estado["jugadores"][rival]
 
@@ -483,11 +492,16 @@ def _ejecutar_sonar(estado, objetivo, eje):
 
     print(f"Sonar sobre el plano {eje} = {valor}. {len(contactos)} contactos detectados.")
 
+    if contactos:
+        resultado_sonar = "contactos"
+    else:
+        resultado_sonar = "sin contactos"
+
     estado["historial"].append({
         "jugador": jugador["nombre"],
         "arma": "S",
         "objetivo": tuple(objetivo),
-        "resultado": "contactos" if contactos else "sin contactos"
+        "resultado": resultado_sonar
     })
 
     estado["turno_actual"] = rival
@@ -505,7 +519,10 @@ def ejecutar_turno(estado, jugada):
         El estado actualizado.
     """
     actual = estado["turno_actual"]
-    rival = 2 if actual == 1 else 1
+    if actual == 1:
+        rival = 2
+    else:
+        rival = 1
 
     ganador = hay_ganador(estado)
 
@@ -805,10 +822,12 @@ def opcion_vs_maquina():
         "La dificultad es invalida."
     )
 
-    estado = partida.nueva_partida_vs_maquina(
-        {"n": 8},
-        "facil" if dificultad == "1" else "dificil"
-    )
+    if dificultad == "1":
+        nivel = "facil"
+    else:
+        nivel = "dificil"
+
+    estado = partida.nueva_partida_vs_maquina({"n": 8}, nivel)
 
     jugar_partida(estado)
 
